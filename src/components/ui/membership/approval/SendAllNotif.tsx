@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Form,
@@ -16,7 +16,6 @@ import {
   Chip,
   addToast,
 } from "@heroui/react";
-import axios from "axios"; // Giả định sử dụng axios, bạn có thể thay bằng fetch nếu muốn
 import { sendNotif } from "@/services/notification/notificationServices";
 
 export default function SendAllNotificationForm({
@@ -27,13 +26,14 @@ export default function SendAllNotificationForm({
   branchData,
   onNotificationSent,
 }: any) {
-  const [notificationType, setNotificationType] = useState("all");
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
-  const [selectedUsers, setSelectedUsers] = useState<any[]>(
-    selectedMembers || []
+  // Nếu có selectedMembers thì mặc định là "individual", ngược lại là "all"
+  const [notificationType, setNotificationType] = useState(
+    selectedMembers && selectedMembers.length > 0 ? "individual" : "all"
   );
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<any[]>(selectedMembers || []);
   const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Trạng thái loading khi gửi API
+  const [isLoading, setIsLoading] = useState(false);
 
   const notificationTypes = [
     { key: "all", label: "Toàn bộ" },
@@ -41,10 +41,21 @@ export default function SendAllNotificationForm({
     { key: "individual", label: "Cá nhân" },
   ];
 
+  // Cập nhật selectedUsers khi selectedMembers thay đổi
+  useEffect(() => {
+    if (selectedMembers && selectedMembers.length > 0) {
+      setNotificationType("individual");
+      setSelectedUsers(selectedMembers);
+    } else {
+      setNotificationType("all");
+      setSelectedUsers([]);
+    }
+  }, [selectedMembers]);
+
   const handleClose = (open: boolean) => {
     setIsModalOpen(open);
     if (!open) {
-      setNotificationType("all");
+      setNotificationType(selectedMembers && selectedMembers.length > 0 ? "individual" : "all");
       setSelectedBranch(null);
       setSelectedUsers(selectedMembers || []);
       setMessage("");
@@ -54,17 +65,11 @@ export default function SendAllNotificationForm({
   const handleSend = async () => {
     setIsLoading(true);
     try {
-      // Chuẩn bị payload dựa trên notificationType
-      const payload: any = {
-        message,
-      };
+      const payload: any = { message };
 
       if (notificationType === "branch" && selectedBranch) {
         payload.branchId = selectedBranch;
-      } else if (
-        notificationType === "individual" &&
-        selectedUsers.length > 0
-      ) {
+      } else if (notificationType === "individual" && selectedUsers.length > 0) {
         payload.userIds = selectedUsers.map((user) => user.id);
       }
 
@@ -75,7 +80,8 @@ export default function SendAllNotificationForm({
         variant: "bordered",
         color: "success",
       });
-      setIsModalOpen();
+      setIsModalOpen(false); // Đóng modal sau khi gửi thành công
+      if (onNotificationSent) onNotificationSent();
     } catch (error) {
       addToast({
         title: "Lỗi",
@@ -116,9 +122,7 @@ export default function SendAllNotificationForm({
               <Autocomplete
                 label="Chọn chi hội"
                 placeholder="Nhập để tìm chi hội"
-                onSelectionChange={(key) =>
-                  setSelectedBranch(key as string | null)
-                }
+                onSelectionChange={(key) => setSelectedBranch(key as string | null)}
                 className="w-full"
               >
                 {branchData?.map((branch: any) => (
@@ -135,13 +139,8 @@ export default function SendAllNotificationForm({
                   label="Chọn hội viên"
                   placeholder="Nhập để tìm hội viên"
                   onSelectionChange={(key) => {
-                    const selectedUser = memberData.find(
-                      (user: any) => user.id === key
-                    );
-                    if (
-                      selectedUser &&
-                      !selectedUsers.some((u) => u.id === selectedUser.id)
-                    ) {
+                    const selectedUser = memberData.find((user: any) => user.id === key);
+                    if (selectedUser && !selectedUsers.some((u) => u.id === selectedUser.id)) {
                       setSelectedUsers((prev) => [...prev, selectedUser]);
                     }
                   }}
@@ -163,7 +162,7 @@ export default function SendAllNotificationForm({
                         color="primary"
                         className="cursor-pointer"
                       >
-                        {user.name}
+                        {user.name} {/* Hiển thị tên người được chọn */}
                       </Chip>
                     ))}
                   </div>
@@ -195,8 +194,7 @@ export default function SendAllNotificationForm({
             isLoading={isLoading}
             isDisabled={
               (notificationType === "branch" && !selectedBranch) ||
-              (notificationType === "individual" &&
-                selectedUsers.length === 0) ||
+              (notificationType === "individual" && selectedUsers.length === 0) ||
               !message ||
               isLoading
             }
