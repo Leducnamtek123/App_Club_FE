@@ -1,7 +1,7 @@
 import axios from "axios";
 import { RefreshTokenResponse } from "../model/type";
 
-export const API_BASE_URL = "https://a1c5-113-161-44-119.ngrok-free.app/";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
