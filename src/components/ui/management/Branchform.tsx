@@ -135,7 +135,7 @@ export default function BranchForm() {
   };
 
   return (
-    <div className="w-2/4 bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
+    <div className=" bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
       <div className="flex items-center justify-between w-full">
         <div className="font-bold">Thông tin chi hội</div>
         <Button

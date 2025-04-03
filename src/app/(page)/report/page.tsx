@@ -101,7 +101,7 @@ export default function Page() {
 
   // Fetch data when user or filters change
   useEffect(() => {
-    if (user?.branch.id) {
+    if (user?.branch?.id) {
       fetchFeeData(user?.branch?.id);
       fetchEventData(user?.branch?.id);
       fetchSponsorData();

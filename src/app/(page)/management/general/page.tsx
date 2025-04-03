@@ -13,7 +13,12 @@ export default function ManagementPage() {
         <p className="font-bold text-2xl mb-4">Trang Quản Lý</p>
 
         <div className="w-full bg-white p-5 border border-gray-300 shadow-lg rounded-lg flex ">
-          <BranchForm />
+          <div className="flex-1">
+            <div className="w-full ps-5  pe-5">
+              <BranchForm />
+            </div>
+            <div className="w-full p-5"></div>
+          </div>
           <div className="flex-1 ">
             <div className="w-full ps-5  pe-5">
               <MembershipFee />
