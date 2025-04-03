@@ -1,0 +1,45 @@
+.ant-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  @media (max-width: 768px) {
+    .ant-table {
+      width: 100% !important;
+    }
+  
+    .ant-table-container {
+      overflow-x: auto;
+    }
+  
+    .ant-table-thead > tr > th,
+    .ant-table-tbody > tr > td {
+      padding: 8px !important;
+      font-size: 12px !important;
+    }
+  
+    .year-column.year-2019,
+    .year-column.year-2020,
+    .year-column.year-2021,
+    .year-column.year-2022 {
+      display: none !important;
+    }
+  
+    .flex.justify-between {
+      flex-direction: column;
+      gap: 10px;
+    }
+  
+    .flex.gap-5 {
+      flex-direction: column;
+      gap: 10px;
+    }
+  
+    .w-40 {
+      width: 100% !important;
+    }
+  
+    .flex.items-center.h-10 {
+      width: 100% !important;
+    }
+  }
