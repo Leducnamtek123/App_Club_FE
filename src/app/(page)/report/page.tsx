@@ -102,8 +102,8 @@ export default function Page() {
   // Fetch data when user or filters change
   useEffect(() => {
     if (user?.branch.id) {
-      fetchFeeData(user.branch.id);
-      fetchEventData(user.branch.id);
+      fetchFeeData(user?.branch?.id);
+      fetchEventData(user?.branch?.id);
       fetchSponsorData();
     }
   }, [user, filters]);
@@ -125,7 +125,7 @@ export default function Page() {
       content: (
         <div>
           <div className="font-bold p-4 text-lg">
-            <h3>Chi hội: {user?.branch.name}</h3>
+            <h3>Chi hội: {user?.branch?.name}</h3>
           </div>
           <div className="flex gap-5">
             <div className="w-1/2">

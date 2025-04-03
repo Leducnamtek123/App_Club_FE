@@ -19,22 +19,22 @@ interface IntroductionFormProps {
 
 export default function IntroductionForm({ initialData = {}, onSubmit }: IntroductionFormProps) {
   const [subImageFiles, setSubImageFiles] = useState<File[]>([]); // Ảnh phụ mới (binary)
-  const [existingSubImages, setExistingSubImages] = useState<string[]>(initialData.images || []); // Ảnh phụ hiện có (URL)
-  const [mainImage, setMainImage] = useState<string | null>(initialData.mainImage || null); // Ảnh chính hiện có (URL)
+  const [existingSubImages, setExistingSubImages] = useState<string[]>(initialData?.images || []); // Ảnh phụ hiện có (URL)
+  const [mainImage, setMainImage] = useState<string | null>(initialData?.mainImage || null); // Ảnh chính hiện có (URL)
   const [newMainImage, setNewMainImage] = useState<File | null>(null); // Ảnh chính mới (binary)
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]); // Danh sách URL ảnh bị xóa
-  const editorContentRef = useRef<string>(initialData.content || "");
+  const editorContentRef = useRef<string>(initialData?.content || "");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setExistingSubImages(initialData.images || []);
-    setMainImage(initialData.mainImage || null);
+    setExistingSubImages(initialData?.images || []);
+    setMainImage(initialData?.mainImage || null);
     setSubImageFiles([]);
     setNewMainImage(null);
     setImagesToDelete([]); // Reset danh sách ảnh bị xóa khi initialData thay đổi
-    editorContentRef.current = initialData.content || "";
+    editorContentRef.current = initialData?.content || "";
   }, [initialData]);
 
   // Xử lý upload ảnh chính
@@ -256,7 +256,7 @@ export default function IntroductionForm({ initialData = {}, onSubmit }: Introdu
       <div className="mb-6">
         <p className="mb-2">Nội dung</p>
         <Editor
-          content={initialData.content ?? ""}
+          content={initialData?.content ?? ""}
           onChange={(val) => {
             editorContentRef.current = val;
           }}

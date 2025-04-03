@@ -48,14 +48,14 @@ export default function Topbar() {
             )}
           </DropdownMenu>
         </Dropdown> */}
-        <div className="flex items-center"><p>Chi hội: <span className="font-bold"> {user?.branch?.name} </span></p></div>
+        {/* <div className="flex items-center"><p>Chi hội: <span className="font-bold"> {user?.branch?.name} </span></p></div> */}
         <Dropdown>
           <DropdownTrigger>
             <Button
               variant="light"
               className="hover:!bg-transparent focus:!bg-transparent active:!bg-transparent"
             >
-              <Avatar /> <span className="text-lg ps-1">{user?.name}</span>
+              <Avatar  /> <span className="text-lg ps-1">{user?.name}</span>
             </Button>
           </DropdownTrigger>
           <DropdownMenu aria-label="User">
