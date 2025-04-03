@@ -63,22 +63,13 @@ export default function FeeReminderNotif({
     };
     try {
       const response = await feeReminder(payload);
-      if (response.status == "success") {
-        addToast({
-          title: "Thành công",
-          description: "Gửi thông báo nhắc phí thành công.",
-          variant: "bordered",
-          color: "success",
-        });
-      }else if(response.status === "failed"){
-        addToast({
-          title: "Thất bại",
-          description: response.reason,
-          variant: "bordered",
-          color: "success",
-        });
-      }
 
+      addToast({
+        title: "Thành công",
+        description: "Gửi thông báo nhắc phí thành công.",
+        variant: "bordered",
+        color: "success",
+      });
       handleClose(false);
     } catch (error) {
       addToast({

@@ -48,7 +48,7 @@ export default function Topbar() {
             )}
           </DropdownMenu>
         </Dropdown> */}
-        <div><p>Chi hội: <span className="font-bold"> {user?.branch.name} </span></p></div>
+        <div className="flex items-center"><p>Chi hội: <span className="font-bold"> {user?.branch.name} </span></p></div>
         <Dropdown>
           <DropdownTrigger>
             <Button

@@ -169,11 +169,11 @@ export default function IntroductionForm({ initialData = {}, onSubmit }: Introdu
               <Image
                 src={newMainImage ? URL.createObjectURL(newMainImage) : mainImage!}
                 alt="Ảnh chính"
-                className="w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
+                className="w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity z-2"
                 onClick={() => handleImageClick(newMainImage ? URL.createObjectURL(newMainImage) : mainImage!)}
               />
               <button
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-md hover:bg-red-600 transition-colors"
+                className="absolute -top-2 -right-2 z-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-md hover:bg-red-600 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemoveMainImage();
@@ -205,11 +205,11 @@ export default function IntroductionForm({ initialData = {}, onSubmit }: Introdu
               <Image
                 src={url}
                 alt={`Ảnh phụ hiện có ${index + 1}`}
-                className="w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity"
+                className="w-20 h-20 object-cover rounded-md border cursor-pointer hover:opacity-80 transition-opacity z-2"
                 onClick={() => handleImageClick(url)}
               />
               <button
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-md hover:bg-red-600 transition-colors"
+                className="absolute -top-2 -right-2 z-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-md hover:bg-red-600 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemoveExistingSubImage(index);

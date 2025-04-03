@@ -1,9 +1,10 @@
+// app/membership/page.jsx
 "use client";
+import { useState, useEffect } from "react";
 import TableCustomize from "@/components/ui/table_customize";
 import {
   approvedUser,
   getApprovedUser,
-  getPendingUser,
   rejectUser,
 } from "@/services/membership/membershipServices";
 import {
@@ -14,14 +15,13 @@ import {
   Input,
   Select,
   SelectItem,
+  Tabs,
+  Tab,
 } from "@heroui/react";
-import { useEffect, useState } from "react";
 import { FaCheck, FaSearch } from "react-icons/fa";
 import { FaXmark } from "react-icons/fa6";
-import { Branch } from "@/lib/model/type";
 import { getBranches } from "@/services/branch/branchServices";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
-
 
 export const columns = [
   { name: "Họ và tên", uid: "name", sortable: true },
@@ -33,29 +33,23 @@ export const columns = [
   { name: "", uid: "actions" },
 ];
 
-export const searchBy = ["name", "companyName", "email", "phone", "branch"];
-
 const statusColorMap = {
   approved: "success",
   pending: "warning",
   rejected: "danger",
+  banned: "danger",
 };
 
-export default function Page() {
-  const [members, setMembers] = useState<any[]>([]);
+export default function MembershipPage() {
+  const [pendingMembers, setPendingMembers] = useState([]);
+  const [rejectedMembers, setRejectedMembers] = useState([]);
+  const [bannedMembers, setBannedMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingActions, setLoadingActions] = useState<{ [key: string]: boolean }>({});
-  const [page, setPage] = useState(1);
-  const [take, setTake] = useState(10);
-  const [searchValue, setSearchValue] = useState("");
-  const [order, setOrder] = useState<string | undefined>(undefined);
-  const [branchId, setBranchId] = useState<string | undefined>(undefined);
-  const [branchs, setBranchs] = useState<Branch[]>([]);
+  const [loadingActions, setLoadingActions] = useState({});
   const [filters, setFilters] = useState({
-    q: "",
     page: 1,
     take: 10,
-    order: undefined,
+    q: "",
     branchId: undefined,
   });
   const [meta, setMeta] = useState({
@@ -66,63 +60,59 @@ export default function Page() {
     hasPreviousPage: false,
     hasNextPage: false,
   });
-
-  // State cho ConfirmationModal
+  const [branches, setBranches] = useState([]);
+  const [searchInput, setSearchInput] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [modalAction, setModalAction] = useState<"approve" | "reject">("approve");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalAction, setModalAction] = useState("approve");
 
   useEffect(() => {
     getBranches()
-      .then(setBranchs)
-      .catch(() => setBranchs([]));
+      .then(setBranches)
+      .catch(() => setBranches([]));
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (status) => {
     setIsLoading(true);
     try {
-      const pendingUsers = await getApprovedUser({ ...filters, status: "pending" });
-      const rejectedUsers = await getApprovedUser({ ...filters, status: "rejected" });
-      const bannedUsers = await getApprovedUser({ ...filters, status: "banned" });
-      const combinedUsers = [...(pendingUsers.data || []), ...(rejectedUsers.data || []),...(bannedUsers.data || [])];
-      setMembers(combinedUsers);
+      const response = await getApprovedUser({ ...filters, status });
+      const data = response.data || [];
+      const setterMap = {
+        pending: setPendingMembers,
+        rejected: setRejectedMembers,
+        banned: setBannedMembers,
+      };
+      setterMap[status](data);
       setMeta({
         page: filters.page,
         take: filters.take,
-        itemCount: combinedUsers.length,
-        pageCount: Math.ceil(combinedUsers.length / filters.take),
+        itemCount: data.length,
+        pageCount: Math.ceil(data.length / filters.take),
         hasPreviousPage: filters.page > 1,
-        hasNextPage: filters.page < Math.ceil(combinedUsers.length / filters.take),
+        hasNextPage: filters.page < Math.ceil(data.length / filters.take),
       });
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
-      setMembers([]);
-      setMeta({
-        page: 1,
-        take: 10,
-        itemCount: 0,
-        pageCount: 1,
-        hasPreviousPage: false,
-        hasNextPage: false,
-      });
+      console.error(`Error fetching ${status} users:`, error);
+      const setterMap = {
+        pending: setPendingMembers,
+        rejected: setRejectedMembers,
+        banned: setBannedMembers,
+      };
+      setterMap[status]([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, [filters.page, filters.take, filters.q, filters.order, filters.branchId]);
+    fetchData("pending");
+    fetchData("rejected");
+    fetchData("banned");
+  }, [filters.page, filters.take, filters.q, filters.branchId]);
 
-  const handleBranchChange = (newBranchId: string | undefined) => {
-    setBranchId(newBranchId);
-    setPage(1);
-  };
-
-  const handleAction = async (data: any, action: "approve" | "reject") => {
+  const handleAction = async (data, action) => {
     if (loadingActions[data.id]) return;
 
-    // Nếu là "approve", hiển thị modal xác nhận
     if (action === "approve") {
       setSelectedUser(data);
       setModalAction(action);
@@ -130,7 +120,6 @@ export default function Page() {
       return;
     }
 
-    // Xử lý "reject" trực tiếp mà không cần modal
     setLoadingActions((prev) => ({ ...prev, [data.id]: true }));
     try {
       if (action === "reject" && data.status === "rejected") {
@@ -148,7 +137,9 @@ export default function Page() {
         description: "Từ chối thành công",
         color: "success",
       });
-      await fetchData();
+      // Refresh both pending and rejected tabs since status changes from pending to rejected
+      fetchData("pending");
+      fetchData("rejected");
     } catch (error) {
       addToast({
         title: "Lỗi",
@@ -181,7 +172,9 @@ export default function Page() {
         description: "Xác nhận thành công",
         color: "success",
       });
-      await fetchData();
+      fetchData("pending");
+      fetchData("rejected");
+      fetchData("banned");
     } catch (error) {
       addToast({
         title: "Lỗi",
@@ -196,29 +189,21 @@ export default function Page() {
     }
   };
 
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: key !== "page" ? 1 : value,
-    }));
-  };
-
   const columnsConfig = {
-    name: (data: any) => <div className="truncate"><p>{data.name}</p></div>,
-    companyName: (data: any) => <div className="w-40 truncate"><p>{data.companyName ?? "-"}</p></div>,
-    branch: (data: any) => <div><p>{data.branch?.name ?? "-"}</p></div>,
-    status: (data: any) => (
+    name: (data) => <div className="truncate"><p>{data.name}</p></div>,
+    companyName: (data) => <div className="w-40 truncate"><p>{data.companyName ?? "-"}</p></div>,
+    branch: (data) => <div><p>{data.branch?.name ?? "-"}</p></div>,
+    status: (data) => (
       <Chip
         variant="shadow"
         className="capitalize"
-        color={statusColorMap[data.status] as any}
+        color={statusColorMap[data.status]}
         size="sm"
       >
         {data.status}
       </Chip>
     ),
-    actions: (data: any) => (
+    actions: (data) => (
       <div className="relative flex justify-center items-center gap-3">
         <Tooltip content="Từ chối" placement="top">
           <Button
@@ -248,32 +233,25 @@ export default function Page() {
     ),
   };
 
-  const [searchInput, setSearchInput] = useState("");
-
-  const handleInputChange = (value) => {
-    setSearchInput(value);
-    if (value === "") handleFilterChange("q", "");
-  };
-
   const handleSearch = () => {
-    handleFilterChange("q", searchInput);
+    setFilters((prev) => ({ ...prev, q: searchInput, page: 1 }));
   };
 
   return (
     <section className="flex justify-center z-0">
-      <div className="w-full">
+      <div className="w-full p-4">
         <div className="mb-10">
           <p className="font-bold text-2xl">Xét duyệt hội viên</p>
         </div>
 
-        <div className="flex justify-between">
-          <div className="flex items-center h-10 w-full lg:w-auto rounded-lg overflow-hidden border border-gray-300">
+        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+          <div className="flex items-center h-10 w-full sm:w-auto rounded-lg overflow-hidden border border-gray-300">
             <Input
               placeholder="Tìm kiếm"
               startContent={<FaSearch className="text-gray-500" />}
               value={searchInput}
               radius="none"
-              onChange={(e) => handleInputChange(e.target.value)}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full bg-white border-none focus:ring-0"
               classNames={{ inputWrapper: "bg-white" }}
             />
@@ -286,32 +264,65 @@ export default function Page() {
               <FaSearch />
             </Button>
           </div>
-          <div className="items-end justify-center">
-            <Select
-              placeholder="Chọn chi hội"
-              variant="bordered"
-              className="w-40 bg-white rounded-large"
-              onChange={(e) => handleBranchChange(e.target.value)}
-            >
-              {branchs?.map((branch) => (
-                <SelectItem key={branch.id}>{branch.name}</SelectItem>
-              ))}
-            </Select>
-          </div>
+          <Select
+            placeholder="Chọn chi hội"
+            variant="bordered"
+            className="w-full sm:w-40 bg-white rounded-large"
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                branchId: e.target.value,
+                page: 1,
+              }))
+            }
+          >
+            {branches?.map((branch) => (
+              <SelectItem key={branch.id}>
+                {branch.name}
+              </SelectItem>
+            ))}
+          </Select>
         </div>
 
-        <TableCustomize
-          ariaLabel="Member pending"
-          columns={columns}
-          data={members}
-          columnsConfig={columnsConfig}
-          isLoading={isLoading}
-          page={filters.page}
-          totalPages={meta.pageCount}
-          onPageChange={(page: number) => handleFilterChange("page", page)}
-        />
+        <Tabs aria-label="Membership status tabs" variant="bordered" className="w-full" color="primary">
+          <Tab key="pending" title="Đang chờ duyệt">
+            <TableCustomize
+              ariaLabel="Pending members"
+              columns={columns}
+              data={pendingMembers}
+              columnsConfig={columnsConfig}
+              isLoading={isLoading}
+              page={filters.page}
+              totalPages={meta.pageCount}
+              onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+            />
+          </Tab>
+          <Tab key="rejected" title="Đã từ chối">
+            <TableCustomize
+              ariaLabel="Rejected members"
+              columns={columns}
+              data={rejectedMembers}
+              columnsConfig={columnsConfig}
+              isLoading={isLoading}
+              page={filters.page}
+              totalPages={meta.pageCount}
+              onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+            />
+          </Tab>
+          <Tab key="banned" title="Đã cấm">
+            <TableCustomize
+              ariaLabel="Banned members"
+              columns={columns}
+              data={bannedMembers}
+              columnsConfig={columnsConfig}
+              isLoading={isLoading}
+              page={filters.page}
+              totalPages={meta.pageCount}
+              onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+            />
+          </Tab>
+        </Tabs>
 
-        {/* Tích hợp ConfirmationModal */}
         <ConfirmationModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -322,7 +333,11 @@ export default function Page() {
               ? "Bạn có muốn xét duyệt thành viên này không?"
               : "Người này đã bị từ chối trước đó, bạn có muốn duyệt lại không?"
           }
-          note={selectedUser?.status === "rejected" ? "Hành động này sẽ thay đổi trạng thái thành được duyệt." : undefined}
+          note={
+            selectedUser?.status === "rejected"
+              ? "Hành động này sẽ thay đổi trạng thái thành được duyệt."
+              : undefined
+          }
           confirmText="Xác nhận"
           cancelText="Hủy"
           confirmColor="primary"
