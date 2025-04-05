@@ -45,8 +45,13 @@ export default function Page() {
   const [events, setEvents] = useState([]);
   const [branchs, setBranchs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const userRole =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+  const isAdmin = role === "ADMIN";
   const [filters, setFilters] = useState({
-    title: "", // Thêm title vào filters
+    title: "",
     branchId: undefined,
     startDate: undefined,
     endDate: undefined,
@@ -81,7 +86,16 @@ export default function Page() {
 
   useEffect(() => {
     setIsLoading(true);
-    getAllEvents(filters)
+    // Get branchId from localStorage if user is ADMIN
+    const userBranchId =
+      isAdmin && parsedUser?.branch.id ? parsedUser?.branch?.id : undefined;
+
+    // Combine filters with branchId for ADMIN
+    const fetchFilters = isAdmin
+      ? { ...filters, branchId: userBranchId }
+      : { ...filters };
+
+    getAllEvents(fetchFilters)
       .then((response) => {
         console.log("API response:", response);
         setEvents(response?.data ?? []);
@@ -92,7 +106,7 @@ export default function Page() {
         setPageCount(1);
       })
       .finally(() => setIsLoading(false));
-  }, [filters]);
+  }, [filters, isAdmin, parsedUser?.branch?.id]);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -142,7 +156,7 @@ export default function Page() {
                 radius="none"
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearch(); // Tìm kiếm khi nhấn Enter
+                  if (e.key === "Enter") handleSearch();
                 }}
                 className="w-full bg-white border-none focus:ring-0"
                 classNames={{ inputWrapper: "bg-white" }}
@@ -156,17 +170,19 @@ export default function Page() {
                 <FaSearch />
               </Button>
             </div>
-
-            <Select
-              variant="bordered"
-              placeholder="Chọn chi hội"
-              className="bg-white rounded-lg w-1/2/4 min-w-[150px] h-10"
-              onChange={(e) => handleFilterChange("branchId", e.target.value)}
-            >
-              {branchs?.map((branch: any) => (
-                <SelectItem key={branch.id}>{branch.name}</SelectItem>
-              ))}
-            </Select>
+            {!isAdmin && (
+              <Select
+                aria-label="branch"
+                variant="bordered"
+                placeholder="Chọn chi hội"
+                className="bg-white rounded-lg w-1/2/4 min-w-[150px] h-10"
+                onChange={(e) => handleFilterChange("branchId", e.target.value)}
+              >
+                {branchs?.map((branch: any) => (
+                  <SelectItem key={branch.id}>{branch.name}</SelectItem>
+                ))}
+              </Select>
+            )}
 
             <DatePicker
               label="Ngày bắt đầu"
@@ -213,7 +229,12 @@ export default function Page() {
               >
                 <Link href={`/event/${event.id}`} className="block">
                   <div className="relative">
-                    <Carousel showThumbs={false} infiniteLoop autoPlay showStatus={false}>
+                    <Carousel
+                      showThumbs={false}
+                      infiniteLoop
+                      autoPlay
+                      showStatus={false}
+                    >
                       {event.images?.length > 0 ? (
                         event.images.map((img, index) => (
                           <Image
@@ -253,12 +274,17 @@ export default function Page() {
                       </h3>
                       <div className="flex-grow flex flex-col gap-1 text-md text-gray-600">
                         <p className="line-clamp-1">
-                          <strong className="text-gray-800">Nhà tổ chức:</strong>{" "}
+                          <strong className="text-gray-800">
+                            Nhà tổ chức:
+                          </strong>{" "}
                           {`Chi hội ${event.branch?.name}` || "Chưa có chi hội"}
                         </p>
                         <p className="line-clamp-1">
                           <strong className="text-gray-800">Thời gian:</strong>{" "}
-                          {new Date(event.startDate).toLocaleDateString("vi-VN")} -{" "}
+                          {new Date(event.startDate).toLocaleDateString(
+                            "vi-VN"
+                          )}{" "}
+                          -{" "}
                           {new Date(event.endDate).toLocaleDateString("vi-VN")}
                         </p>
                         <p className="line-clamp-1">
@@ -270,12 +296,20 @@ export default function Page() {
                             <strong>Tổng tài trợ:</strong>{" "}
                             <span className="text-blue-600 font-semibold">
                               {sponsors[event.id]
-                                .reduce((sum, s) => sum + Number(s.amount || 0), 0)
-                                .toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+                                .reduce(
+                                  (sum, s) => sum + Number(s.amount || 0),
+                                  0
+                                )
+                                .toLocaleString("vi-VN", {
+                                  style: "currency",
+                                  currency: "VND",
+                                })}
                             </span>
                           </p>
                         ) : (
-                          <p className="text-xs text-gray-500">Chưa có nhà tài trợ</p>
+                          <p className="text-xs text-gray-500">
+                            Chưa có nhà tài trợ
+                          </p>
                         )}
                       </div>
                     </div>
@@ -285,7 +319,7 @@ export default function Page() {
             ))
           ) : (
             <div className="col-span-full flex justify-center items-center h-64">
-              <CircularProgress />
+              Không tìm thấy sự kiện
             </div>
           )}
         </div>

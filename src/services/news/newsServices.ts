@@ -17,6 +17,7 @@ export const getAllNews = async ({
     order = undefined,
     isPublished = undefined,
     category = undefined,
+    branchId = undefined
 }: {
     page?: number;
     take?: number;
@@ -24,6 +25,7 @@ export const getAllNews = async ({
     order?: string;
     isPublished?: boolean;
     category?: string;
+    branchId?:string;
 }) => {
     try {
         const params: { [key: string]: any } = { page, take };
@@ -31,6 +33,7 @@ export const getAllNews = async ({
         if (order) params.order = order;
         if (isPublished) params.isPublished = isPublished;
         if (category) params.category = category;
+        if(branchId) params.branchId=branchId;
         const response = await apiService.get("/news", params);
         return response;
     } catch (error) {

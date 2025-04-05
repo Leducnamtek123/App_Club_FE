@@ -9,56 +9,56 @@ import {
     ModalContent,
     ModalFooter,
     ModalHeader,
+    Textarea,
     addToast
 } from "@heroui/react";
 import { useState, useEffect } from "react";
-import { createMembershipFee, updateMembershipFee } from "@/services/membership_fee/membershipFeeServices";
-import { MembershipFee } from "@/lib/model/type";
+import { Benefit } from "@/lib/model/type";
+import { addSponsorBenefit, updateSponsorBenefit } from "@/services/sponsor-benefit/sponsorBenefitService";
 
-interface ModalCreateMembershipFeeProps {
+interface ModalCreateItemProps {
     isModalOpen: boolean;
     setIsModalOpen: (open: boolean) => void;
-    setSelectedData: (data: MembershipFee[]) => void;
+    setSelectedData: (data: Benefit | null) => void;
     refreshData: () => void;
-    selectedFee?: MembershipFee | null;
+    selectedItem?: Benefit | null;
 }
 
-export default function ModalCreateMembershipFee({
+export default function ModalCreateSponsorBenefit({
     isModalOpen,
     setIsModalOpen,
     setSelectedData,
     refreshData,
-    selectedFee
-}: ModalCreateMembershipFeeProps) {
-    const [year, setYear] = useState("");
-    const [amount, setAmount] = useState("");
+    selectedItem
+}: ModalCreateItemProps) {
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Set form values when editing
     useEffect(() => {
-        if (selectedFee) {
-            setYear(selectedFee.year.toString());
-            setAmount(selectedFee.amount.toString());
+        if (selectedItem && isModalOpen) {
+            setTitle(selectedItem.title || "");
+            setDescription(selectedItem.description || "");
         } else {
-            setYear("");
-            setAmount("");
+            setTitle("");
+            setDescription("");
         }
-    }, [selectedFee, isModalOpen]);
+    }, [selectedItem, isModalOpen]);
 
     const handleClose = (open: boolean) => {
         setIsModalOpen(open);
         if (!open) {
-            // Reset form when closing
-            setYear("");
-            setAmount("");
+            setTitle("");
+            setDescription("");
+            setSelectedData(null);
         }
     };
 
     const validateForm = () => {
-        if (!year.trim()) {
+        if (!title.trim()) {
             addToast({
                 title: "Lỗi",
-                description: "Năm hội phí không được để trống.",
+                description: "Tiêu đề không được để trống.",
                 variant: "solid",
                 color: "danger",
                 classNames: { base: "z-3" },
@@ -66,46 +66,45 @@ export default function ModalCreateMembershipFee({
             return false;
         }
         
-        if (!amount.trim()) {
+        if (!description.trim()) {
             addToast({
                 title: "Lỗi",
-                description: "Số tiền không được để trống.",
+                description: "Mô tả không được để trống.",
                 variant: "solid",
                 color: "danger",
                 classNames: { base: "z-3" },
             });
             return false;
         }
-        
         return true;
     };
 
     const handleSubmit = async () => {
         if (!validateForm()) return;
 
-        const payload = { 
-            year: parseInt(year), 
-            amount: parseFloat(amount) 
+        const benefitData = {
+            title: title,
+            description: description
         };
-        
+
         setIsSubmitting(true);
         try {
-            if (selectedFee) {
-                // Update existing fee
-                await updateMembershipFee(selectedFee.year, payload);
+            if (selectedItem?.id) {
+                // Update existing benefit
+                await updateSponsorBenefit(selectedItem.id, benefitData);
                 addToast({
                     title: "Thành công",
-                    description: "Cập nhật hội phí thành công.",
+                    description: "Cập nhật quyền lợi nhà tài trợ thành công.",
                     variant: "bordered",
                     color: "success",
                     classNames: { base: "z-3" },
                 });
             } else {
-                // Create new fee
-                await createMembershipFee(payload);
+                // Create new benefit
+                await addSponsorBenefit(benefitData);
                 addToast({
                     title: "Thành công",
-                    description: "Tạo hội phí năm thành công.",
+                    description: "Tạo quyền lợi nhà tài trợ thành công.",
                     variant: "bordered",
                     color: "success",
                     classNames: { base: "z-3" },
@@ -114,7 +113,7 @@ export default function ModalCreateMembershipFee({
             
             refreshData();
             handleClose(false);
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error:", error);
             addToast({
                 title: "Lỗi",
@@ -136,24 +135,24 @@ export default function ModalCreateMembershipFee({
         >
             <ModalContent className="max-w-lg w-1/3 p-8 rounded-2xl shadow-2xl bg-white">
                 <ModalHeader className="text-2xl font-semibold text-gray-800">
-                    {selectedFee ? "Chỉnh sửa hội phí" : "Tạo hội phí mới"}
+                    {selectedItem ? "Cập nhật quyền lợi" : "Tạo quyền lợi mới"}
                 </ModalHeader>
                 <ModalBody>
                     <Form className="flex flex-col gap-6">
                         <Input
-                            label="Năm"
-                            type="number"
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                            placeholder="Nhập năm"
+                            label="Tiêu đề"
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Nhập tiêu đề"
                             isRequired
                         />
-                        <Input
-                            label=" Số tiền (VNĐ)"
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="Nhập số tiền"
+                        <Textarea
+                            label="Mô tả"
+                            type="text"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Nhập mô tả"
                             isRequired
                         />
                     </Form>
@@ -171,7 +170,7 @@ export default function ModalCreateMembershipFee({
                         onPress={handleSubmit}
                         isLoading={isSubmitting}
                     >
-                        {selectedFee ? "Cập nhật" : "Tạo"}
+                        {selectedItem ? "Cập nhật" : "Tạo"}
                     </Button>
                 </ModalFooter>
             </ModalContent>

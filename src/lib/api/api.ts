@@ -1,7 +1,7 @@
 import axios from "axios";
 import { RefreshTokenResponse } from "../model/type";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -11,10 +11,9 @@ const axiosInstance = axios.create({
   },
 });
 
-// Interceptor để log  cURL request
+// Interceptor để log cURL request (giữ nguyên)
 axiosInstance.interceptors.request.use((config) => {
   const { method, url, headers, data, params } = config;
-
   let curl = `curl -X ${method?.toUpperCase()} '${API_BASE_URL}${url}'`;
   Object.entries(headers || {}).forEach(([key, value]) => {
     if (typeof value === "string") {
@@ -40,6 +39,9 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
+// Biến global để theo dõi refresh token
+let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+
 // Hàm refresh token
 const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenResponse> => {
   try {
@@ -59,7 +61,7 @@ const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenRes
   }
 };
 
-// Request Interceptor - Chỉ thêm accessToken vào header nếu có
+// Request Interceptor - Thêm accessToken vào header nếu có
 axiosInstance.interceptors.request.use(
   (config) => {
     const accessToken = localStorage.getItem("accessToken");
@@ -74,17 +76,14 @@ axiosInstance.interceptors.request.use(
 // Response Interceptor - Không tự động refresh token
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Định nghĩa interface và các hàm gọi API
 interface RequestOptions {
   contentType?: "application/json" | "multipart/form-data";
 }
 
-// Hàm xử lý refresh token và retry request
+// Hàm xử lý refresh token và retry request với đồng bộ
 const handleRequestWithRefresh = async <T>(
   requestFn: () => Promise<T>
 ): Promise<T> => {
@@ -92,43 +91,42 @@ const handleRequestWithRefresh = async <T>(
     return await requestFn();
   } catch (error: any) {
     if (error.response?.status === 401) {
-      try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          throw new Error("No refresh token available");
-        }
-
-        console.log("🔍 Current tokens in localStorage:", {
-          accessToken: localStorage.getItem("accessToken"),
-          refreshToken: localStorage.getItem("refreshToken"),
-        });
-
-        console.log("🔍 Attempting to refresh token with:", refreshToken);
-        const data = await refreshAccessToken(refreshToken);
-
-        // Bước 1: Xét thẳng data vào headers trước
-        console.log("🔍 Setting headers with new access token");
-        axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
-
-        // Bước 2: Xét localStorage sau
-        console.log("🔍 Setting localStorage with new tokens");
-        localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
-
-        console.log("🔍 Refresh token success:", data);
-
-        // Thử lại request ban đầu
-        return await requestFn();
-      } catch (refreshError: any) {
-        console.error("🔍 Refresh token failed:", refreshError);
-
-        // Xóa token và chuyển hướng đến login
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
-        throw refreshError;
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        throw new Error("No refresh token available");
       }
+
+      // Nếu chưa có refresh token đang chạy, tạo mới
+      if (!refreshTokenPromise) {
+        console.log("🔍 Starting new refresh token process with:", refreshToken);
+        refreshTokenPromise = refreshAccessToken(refreshToken)
+          .then((data) => {
+            // Cập nhật token ngay lập tức
+            axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
+            localStorage.setItem("accessToken", data.accessToken);
+            localStorage.setItem("refreshToken", data.refreshToken);
+            console.log("🔍 Refresh token success:", data);
+            return data;
+          })
+          .catch((refreshError) => {
+            console.error("🔍 Refresh token failed:", refreshError);
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+            throw refreshError;
+          })
+          .finally(() => {
+            // Reset promise sau khi hoàn tất
+            refreshTokenPromise = null;
+          });
+      } else {
+        console.log("🔍 Waiting for existing refresh token process");
+      }
+
+      // Chờ refresh token hoàn tất và thử lại request
+      const refreshedData = await refreshTokenPromise;
+      return await requestFn();
     }
     throw error;
   }
@@ -142,7 +140,7 @@ const apiService = {
         ? { "Content-Type": options.contentType }
         : undefined,
     };
-    return handleRequestWithRefresh(() => axiosInstance.get(url, config).then(res => res.data));
+    return handleRequestWithRefresh(() => axiosInstance.get(url, config).then((res) => res.data));
   },
 
   post: async (url: string, data?: any, options: RequestOptions = {}) => {
@@ -151,7 +149,7 @@ const apiService = {
         ? { "Content-Type": options.contentType }
         : undefined,
     };
-    return handleRequestWithRefresh(() => axiosInstance.post(url, data, config).then(res => res.data));
+    return handleRequestWithRefresh(() => axiosInstance.post(url, data, config).then((res) => res.data));
   },
 
   put: async (url: string, data: any, options: RequestOptions = {}) => {
@@ -160,7 +158,7 @@ const apiService = {
         ? { "Content-Type": options.contentType }
         : undefined,
     };
-    return handleRequestWithRefresh(() => axiosInstance.put(url, data, config).then(res => res.data));
+    return handleRequestWithRefresh(() => axiosInstance.put(url, data, config).then((res) => res.data));
   },
 
   patch: async (url: string, data?: any, options: RequestOptions = {}) => {
@@ -169,7 +167,7 @@ const apiService = {
         ? { "Content-Type": options.contentType }
         : undefined,
     };
-    return handleRequestWithRefresh(() => axiosInstance.patch(url, data, config).then(res => res.data));
+    return handleRequestWithRefresh(() => axiosInstance.patch(url, data, config).then((res) => res.data));
   },
 
   delete: async (url: string, options: RequestOptions = {}) => {
@@ -178,7 +176,7 @@ const apiService = {
         ? { "Content-Type": options.contentType }
         : undefined,
     };
-    return handleRequestWithRefresh(() => axiosInstance.delete(url, config).then(res => res.data));
+    return handleRequestWithRefresh(() => axiosInstance.delete(url, config).then((res) => res.data));
   },
 };
 

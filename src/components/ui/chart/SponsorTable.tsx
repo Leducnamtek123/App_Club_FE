@@ -37,17 +37,30 @@ const SponsorTable = ({ sponsors, meta, onPageChange }) => {
         </TableHeader>
         <TableBody>
           {sponsors && sponsors.length > 0 ? (
-            sponsors.map((sponsor, index) => (
+            sponsors?.map((sponsor, index) => (
               <TableRow key={sponsor.sponsorId}>
                 <TableCell>{(meta.page - 1) * meta.take + index + 1}</TableCell>
-                <TableCell>{sponsor.sponsorName}</TableCell>
-                <TableCell>{Number(sponsor.totalAmount).toLocaleString()}</TableCell>
-                <TableCell>{sponsor.eventCount}</TableCell>
+                <TableCell>
+                  {sponsor.sponsorName ? sponsor.sponsorName : 'Không có giá trị'}
+                </TableCell>
+                <TableCell>
+                  {sponsor.totalAmount !== undefined && sponsor.totalAmount !== null
+                    ? Number(sponsor.totalAmount).toLocaleString()
+                    : 'Không có giá trị'}
+                </TableCell>
+                <TableCell>
+                  {sponsor.eventCount !== undefined && sponsor.eventCount !== null
+                    ? sponsor.eventCount
+                    : 'Không có giá trị'}
+                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4}>Không có dữ liệu</TableCell>
+              <TableCell>Không có dữ liệu</TableCell>
+              <TableCell>-</TableCell>
+              <TableCell>-</TableCell>
+              <TableCell>-</TableCell>
             </TableRow>
           )}
         </TableBody>
@@ -60,8 +73,8 @@ const SponsorTable = ({ sponsors, meta, onPageChange }) => {
             page={meta.page}
             total={meta.pageCount}
             onChange={(newPage) => onPageChange(newPage)}
-            color="primary" // Assuming HeroUI supports a color prop
-            showControls // Assuming this enables prev/next arrows
+            color="primary"
+            showControls
           />
         </div>
       )}

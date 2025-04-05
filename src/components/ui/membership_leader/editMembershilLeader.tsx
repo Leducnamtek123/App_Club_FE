@@ -48,7 +48,7 @@ export default function FormEditMembershipLeader({
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [companyName, setCompanyName] = useState("");
-    const [address, setAddress] = useState("");
+    // const [address, setAddress] = useState("");
     const [branchId, setBranchId] = useState("");
     const [salutation, setSalutation] = useState("")
     const [position, setPosition] = useState("");
@@ -96,7 +96,7 @@ export default function FormEditMembershipLeader({
             setPhone(selectedData.phone || "");
             setEmail(selectedData.email || "");
             setCompanyName(selectedData.companyName || "");
-            setAddress(selectedData.address || "");
+            // setAddress(selectedData.address || "");
             setBranchId(selectedData.branch.id || "");
             setSalutation(selectedData.salutation || "");
             setPosition(selectedData.position || "");
@@ -136,7 +136,7 @@ export default function FormEditMembershipLeader({
             zaloPhone: phone,
             email: email,
             companyName: companyName,
-            address: address,
+            // address: address,
             branchId: branchId,
             position: position,
             role: "ADMIN",
@@ -233,10 +233,10 @@ export default function FormEditMembershipLeader({
                                 />
                             </div>
 
-                            <div>
+                            {/* <div>
                                 <label className="text-sm">Địa chỉ</label>
                                 <Input className="w-full" value={address} onChange={(e) => setAddress(e.target.value)} />
-                            </div>
+                            </div> */}
 
                             <div>
                                 <label className="text-sm">Chức vụ</label>

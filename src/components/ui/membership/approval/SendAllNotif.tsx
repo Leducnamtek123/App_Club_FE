@@ -26,20 +26,32 @@ export default function SendAllNotificationForm({
   branchData,
   onNotificationSent,
 }: any) {
-  // Nếu có selectedMembers thì mặc định là "individual", ngược lại là "all"
+  // Lấy thông tin user từ localStorage
+  const userRole = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+  const userBranchId = parsedUser?.branch?.id; // Lấy branch.id từ user trong localStorage
+
+  // Nếu có selectedMembers thì mặc định là "individual", ngược lại là "all" hoặc "branch" nếu là ADMIN
   const [notificationType, setNotificationType] = useState(
-    selectedMembers && selectedMembers.length > 0 ? "individual" : "all"
+    selectedMembers && selectedMembers.length > 0 ? "individual" : (role === "ADMIN" ? "branch" : "all")
   );
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(userBranchId || null); // Mặc định là branch.id từ localStorage
   const [selectedUsers, setSelectedUsers] = useState<any[]>(selectedMembers || []);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Danh sách các loại thông báo
   const notificationTypes = [
     { key: "all", label: "Toàn bộ" },
     { key: "branch", label: "Theo chi hội" },
     { key: "individual", label: "Cá nhân" },
   ];
+
+  // Lọc notificationTypes dựa trên role
+  const filteredNotificationTypes = role === "ADMIN"
+    ? notificationTypes.filter((type) => type.key !== "all") // Ẩn "Toàn bộ" nếu là ADMIN
+    : notificationTypes;
 
   // Cập nhật selectedUsers khi selectedMembers thay đổi
   useEffect(() => {
@@ -47,16 +59,18 @@ export default function SendAllNotificationForm({
       setNotificationType("individual");
       setSelectedUsers(selectedMembers);
     } else {
-      setNotificationType("all");
+      setNotificationType(role === "ADMIN" ? "branch" : "all"); // Nếu là ADMIN, mặc định là "branch"
       setSelectedUsers([]);
     }
-  }, [selectedMembers]);
+    // Đảm bảo selectedBranch luôn là branch.id từ localStorage
+    setSelectedBranch(userBranchId || null);
+  }, [selectedMembers, role, userBranchId]);
 
   const handleClose = (open: boolean) => {
     setIsModalOpen(open);
     if (!open) {
-      setNotificationType(selectedMembers && selectedMembers.length > 0 ? "individual" : "all");
-      setSelectedBranch(null);
+      setNotificationType(selectedMembers && selectedMembers.length > 0 ? "individual" : (role === "ADMIN" ? "branch" : "all"));
+      setSelectedBranch(userBranchId || null); // Reset về branch.id từ localStorage
       setSelectedUsers(selectedMembers || []);
       setMessage("");
     }
@@ -113,7 +127,7 @@ export default function SendAllNotificationForm({
               onChange={(e) => setNotificationType(e.target.value)}
               className="w-full"
             >
-              {notificationTypes.map((type) => (
+              {filteredNotificationTypes.map((type) => (
                 <SelectItem key={type.key}>{type.label}</SelectItem>
               ))}
             </Select>
@@ -122,7 +136,8 @@ export default function SendAllNotificationForm({
               <Autocomplete
                 label="Chọn chi hội"
                 placeholder="Nhập để tìm chi hội"
-                onSelectionChange={(key) => setSelectedBranch(key as string | null)}
+                selectedKey={selectedBranch} // Giá trị mặc định là branch.id từ localStorage
+                isDisabled={true} // Vô hiệu hóa để không thay đổi được
                 className="w-full"
               >
                 {branchData?.map((branch: any) => (

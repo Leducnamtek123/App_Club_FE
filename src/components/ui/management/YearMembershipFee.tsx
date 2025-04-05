@@ -3,6 +3,7 @@
 import TableCustomize from "@/components/ui/table_customize";
 import { FaEdit, FaEllipsisV, FaPlus, FaTrash } from "react-icons/fa";
 import {
+  addToast,
   Button,
   Dropdown,
   DropdownItem,
@@ -75,8 +76,21 @@ export default function YearMembershipFee() {
         setIsLoading(true);
         await deleteMembershipFee(feeToDelete);
         await fetchData();
+        addToast({
+          title: "Thành công",
+          description: "Xóa hội phí thành công.",
+          variant: "bordered",
+          color: "success",
+          classNames: { base: "z-3" },
+        });
       } catch (error) {
-        console.error("Error deleting membership fee:", error);
+        addToast({
+          title: "Thất bại",
+          description: "Xóa hội phí thất bại",
+          variant: "solid",
+          color: "danger",
+          classNames: { base: "z-3" },
+        });
       } finally {
         setIsLoading(false);
         setFeeToDelete(null);
@@ -114,8 +128,8 @@ export default function YearMembershipFee() {
             </Button>
           </DropdownTrigger>
           <DropdownMenu>
-            <DropdownItem 
-              key="edit" 
+            <DropdownItem
+              key="edit"
               startContent={<FaEdit />}
               onPress={() => handleEdit(data)}
             >
@@ -147,7 +161,7 @@ export default function YearMembershipFee() {
     <div className="w-full bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
       <div className="flex items-center justify-between w-full">
         <div className="font-bold">Hội phí từng năm</div>
-        
+
         <div className="flex justify-end">
           <Button
             endContent={<FaPlus />}

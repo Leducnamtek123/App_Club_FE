@@ -94,7 +94,7 @@ export default function FeeReminderNotif({
 
   return (
     <Modal isOpen={isModalOpen} onOpenChange={handleClose}>
-      <ModalContent className="max-w-lg w-full p-8 rounded-2xl shadow-2xl bg-white">
+      <ModalContent className="max-w-lg w-full p-8 rounded-2xl shadow-2xl bg-white z-0" >
         <ModalHeader className="text-2xl font-semibold text-gray-800">
           Gửi thông báo
         </ModalHeader>

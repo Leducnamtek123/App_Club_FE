@@ -1,4 +1,3 @@
-// app/membership/page.jsx
 "use client";
 import { useState, useEffect } from "react";
 import TableCustomize from "@/components/ui/table_customize";
@@ -6,6 +5,8 @@ import {
   approvedUser,
   getApprovedUser,
   rejectUser,
+  unbanUser,
+
 } from "@/services/membership/membershipServices";
 import {
   Button,
@@ -20,6 +21,7 @@ import {
 } from "@heroui/react";
 import { FaCheck, FaSearch } from "react-icons/fa";
 import { FaXmark } from "react-icons/fa6";
+import { MdLockOpen } from "react-icons/md"; // Added icon for unban
 import { getBranches } from "@/services/branch/branchServices";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
@@ -65,6 +67,12 @@ export default function MembershipPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalAction, setModalAction] = useState("approve");
+  const userRole =
+  typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+  const isAdmin = role === "ADMIN";
+
 
   useEffect(() => {
     getBranches()
@@ -113,7 +121,7 @@ export default function MembershipPage() {
   const handleAction = async (data, action) => {
     if (loadingActions[data.id]) return;
 
-    if (action === "approve") {
+    if (action === "approve" || action === "unban") {
       setSelectedUser(data);
       setModalAction(action);
       setIsModalOpen(true);
@@ -137,7 +145,6 @@ export default function MembershipPage() {
         description: "Từ chối thành công",
         color: "success",
       });
-      // Refresh both pending and rejected tabs since status changes from pending to rejected
       fetchData("pending");
       fetchData("rejected");
     } catch (error) {
@@ -157,31 +164,39 @@ export default function MembershipPage() {
 
     setLoadingActions((prev) => ({ ...prev, [selectedUser.id]: true }));
     try {
-      if (modalAction === "approve" && selectedUser.status === "approved") {
+      if (modalAction === "approve") {
+        if (selectedUser.status === "approved") {
+          addToast({
+            title: "Lỗi",
+            description: "Thành viên đã được duyệt trước đó",
+            color: "danger",
+          });
+          return;
+        }
+        await approvedUser(selectedUser.id);
         addToast({
-          title: "Lỗi",
-          description: "Thành viên đã được duyệt trước đó",
-          color: "danger",
+          title: "Thành công",
+          description: "Xác nhận thành công",
+          color: "success",
         });
-        return;
+      } else if (modalAction === "unban") {
+        await unbanUser(selectedUser.id); // Assuming this API exists
+        addToast({
+          title: "Thành công",
+          description: "Gỡ cấm thành công",
+          color: "success",
+        });
       }
-
-      await approvedUser(selectedUser.id);
-      addToast({
-        title: "Thành công",
-        description: "Xác nhận thành công",
-        color: "success",
-      });
       fetchData("pending");
       fetchData("rejected");
       fetchData("banned");
     } catch (error) {
       addToast({
         title: "Lỗi",
-        description: "Xác nhận thất bại",
+        description: modalAction === "approve" ? "Xác nhận thất bại" : "Gỡ cấm thất bại",
         color: "danger",
       });
-      console.error("Duyệt thất bại:", error);
+      console.error(`${modalAction === "approve" ? "Duyệt" : "Gỡ cấm"} thất bại:`, error);
     } finally {
       setLoadingActions((prev) => ({ ...prev, [selectedUser.id]: false }));
       setIsModalOpen(false);
@@ -205,30 +220,47 @@ export default function MembershipPage() {
     ),
     actions: (data) => (
       <div className="relative flex justify-center items-center gap-3">
-        <Tooltip content="Từ chối" placement="top">
-          <Button
-            size="sm"
-            color="danger"
-            variant="light"
-            isIconOnly
-            isLoading={loadingActions[data.id]}
-            onPress={() => handleAction(data, "reject")}
-          >
-            <FaXmark size={20} />
-          </Button>
-        </Tooltip>
-        <Tooltip content="Đồng ý" placement="top">
-          <Button
-            size="sm"
-            color="primary"
-            variant="light"
-            isIconOnly
-            isLoading={loadingActions[data.id]}
-            onPress={() => handleAction(data, "approve")}
-          >
-            <FaCheck size={20} />
-          </Button>
-        </Tooltip>
+        {data.status === "banned" ? (
+          <Tooltip content="Gỡ cấm" placement="top">
+            <Button
+              size="sm"
+              color="success"
+              variant="light"
+              isIconOnly
+              isLoading={loadingActions[data.id]}
+              onPress={() => handleAction(data, "unban")}
+            >
+              <MdLockOpen size={20} />
+            </Button>
+          </Tooltip>
+        ) : (
+          <>
+            <Tooltip content="Từ chối" placement="top">
+              <Button
+                size="sm"
+                color="danger"
+                variant="light"
+                isIconOnly
+                isLoading={loadingActions[data.id]}
+                onPress={() => handleAction(data, "reject")}
+              >
+                <FaXmark size={20} />
+              </Button>
+            </Tooltip>
+            <Tooltip content="Đồng ý" placement="top">
+              <Button
+                size="sm"
+                color="primary"
+                variant="light"
+                isIconOnly
+                isLoading={loadingActions[data.id]}
+                onPress={() => handleAction(data, "approve")}
+              >
+                <FaCheck size={20} />
+              </Button>
+            </Tooltip>
+          </>
+        )}
       </div>
     ),
   };
@@ -239,7 +271,7 @@ export default function MembershipPage() {
 
   return (
     <section className="flex justify-center z-0">
-      <div className="w-full p-4">
+      <div className="w-full">
         <div className="mb-10">
           <p className="font-bold text-2xl">Xét duyệt hội viên</p>
         </div>
@@ -264,7 +296,9 @@ export default function MembershipPage() {
               <FaSearch />
             </Button>
           </div>
-          <Select
+          {!isAdmin && (
+            <Select
+            aria-label="branch"
             placeholder="Chọn chi hội"
             variant="bordered"
             className="w-full sm:w-40 bg-white rounded-large"
@@ -282,6 +316,8 @@ export default function MembershipPage() {
               </SelectItem>
             ))}
           </Select>
+          )}
+          
         </div>
 
         <Tabs aria-label="Membership status tabs" variant="bordered" className="w-full" color="primary">
@@ -327,20 +363,22 @@ export default function MembershipPage() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onConfirm={handleConfirmAction}
-          title="Xác nhận xét duyệt"
+          title={modalAction === "approve" ? "Xác nhận xét duyệt" : "Xác nhận gỡ cấm"}
           message={
-            selectedUser?.status === "pending"
-              ? "Bạn có muốn xét duyệt thành viên này không?"
-              : "Người này đã bị từ chối trước đó, bạn có muốn duyệt lại không?"
+            modalAction === "approve"
+              ? selectedUser?.status === "pending"
+                ? "Bạn có muốn xét duyệt thành viên này không?"
+                : "Người này đã bị từ chối trước đó, bạn có muốn duyệt lại không?"
+              : "Bạn có muốn gỡ cấm thành viên này không?"
           }
           note={
-            selectedUser?.status === "rejected"
+            modalAction === "approve" && selectedUser?.status === "rejected"
               ? "Hành động này sẽ thay đổi trạng thái thành được duyệt."
               : undefined
           }
           confirmText="Xác nhận"
           cancelText="Hủy"
-          confirmColor="primary"
+          confirmColor={modalAction === "approve" ? "primary" : "success"}
         />
       </div>
     </section>

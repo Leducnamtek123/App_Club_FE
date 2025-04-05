@@ -163,3 +163,11 @@ export class NotificationDto {
   type: string;
   userId: string;
 }
+
+export interface Benefit {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  title: string;
+  description: string;
+}

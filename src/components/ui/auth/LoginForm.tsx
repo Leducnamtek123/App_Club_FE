@@ -27,12 +27,25 @@ const LoginForm = () => {
     return newErrors;
   };
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Ngăn reload mặc định của form
-    setLoading(true);
-    setErrors({});
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    const validationErrors = validateForm(newEmail, password);
+    setErrors((prev) => ({ ...prev, email: validationErrors.email }));
+  };
 
-    // Kiểm tra dữ liệu đầu vào
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    const validationErrors = validateForm(email, newPassword);
+    setErrors((prev) => ({ ...prev, password: validationErrors.password }));
+  };
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); 
+    setLoading(true);
+    setErrors({}); // Reset errors
+
     const validationErrors = validateForm(email, password);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -42,11 +55,10 @@ const LoginForm = () => {
 
     try {
       const data = await login(email, password);
-      localStorage.setItem("token", data?.token);
-      router.push("/dashboard"); // Chỉ chuyển hướng khi thành công
+      localStorage.setItem("token", data.token);
+      router.push("/dashboard");
     } catch (err: any) {
-      console.log("Login error:", err.response);
-
+      console.error("Login error:", err);
       let errorMessage = "Đã xảy ra lỗi khi đăng nhập";
       if (err.response?.status === 401) {
         errorMessage = "Sai mật khẩu";
@@ -59,7 +71,6 @@ const LoginForm = () => {
       setErrors({ general: errorMessage });
       setEmail("");
       setPassword("");
-      setTimeout(() => setErrors({}), 10000);
     } finally {
       setLoading(false);
     }
@@ -71,12 +82,10 @@ const LoginForm = () => {
       onSubmit={onSubmit}
     >
       <div className="w-full flex flex-col gap-6">
-        {/* Hiển thị thông báo lỗi chung */}
         {errors.general && (
           <p className="text-red-500 text-sm text-center">{errors.general}</p>
         )}
 
-        {/* Email Input */}
         <div>
           <Input
             type="email"
@@ -91,12 +100,11 @@ const LoginForm = () => {
             required
             isInvalid={!!errors.email}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
           />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
-        {/* Password Input */}
         <div>
           <Input
             isClearable
@@ -110,20 +118,18 @@ const LoginForm = () => {
             placeholder="********"
             className="text-sm font-normal w-full"
             required
-            isInvalid={!!errors.password || (errors.general === "Sai mật khẩu")}
+            isInvalid={!!errors.password || errors.general === "Sai mật khẩu"}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
           />
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
-        {/* Submit Button */}
         <Button
           type="submit"
           disabled={loading}
-          className={`font-bold uppercase text-xs rounded-lg w-full py-3 shadow-md ${
-            loading ? "bg-gray-500 cursor-not-allowed" : "bg-gray-900 text-white"
-          }`}
+          className={`font-bold uppercase text-xs rounded-lg w-full py-3 shadow-md ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-gray-900 text-white"
+            }`}
         >
           {loading ? <CircularProgress aria-label="Loading.." size="md" /> : "Sign in"}
         </Button>

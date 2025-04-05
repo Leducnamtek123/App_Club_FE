@@ -190,7 +190,7 @@ export default function FeeForm({
     <Modal
       isOpen={isModalOpen}
       onOpenChange={handleClose}
-      classNames={{ backdrop: "z-2" }}
+      classNames={{ backdrop: "" }}
     >
       <ModalContent className={`p-8 rounded-2xl shadow-2xl bg-white ${isFullView ? "max-w-4xl w-full" : "max-w-2xl w-full"}`}>
         <ModalHeader className="text-2xl font-semibold text-gray-800">

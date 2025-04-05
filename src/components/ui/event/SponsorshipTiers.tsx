@@ -1,6 +1,6 @@
 "use client";
 
-import { EventBenefit, SponsorshipTier, SponsorshipTierDTO } from "@/lib/model/type";
+import { EventBenefit, SponsorshipTierDTO } from "@/lib/model/type";
 import { Chip, Select, SelectItem, Input } from "@heroui/react";
 import { useState, useEffect, useMemo } from "react";
 
@@ -12,10 +12,11 @@ const TIERS = [
 ];
 
 interface SponsorshipTiersProps {
-  sponsorshipTiers: SponsorshipTierDTO[] | undefined; // Nhận dữ liệu hiển thị dưới dạng SponsorshipTierDTO
-  setSponsorshipTiers: (tiers: SponsorshipTierDTO[]) => void; // Trả về dữ liệu form dưới dạng SponsorshipTier
+  sponsorshipTiers: SponsorshipTierDTO[] | undefined;
+  setSponsorshipTiers: (tiers: SponsorshipTierDTO[]) => void;
   benefitData: EventBenefit[];
   errors: Record<string, string>;
+  setErrors: (errors: Record<string, string>) => void;
 }
 
 export default function SponsorshipTiers({
@@ -23,64 +24,93 @@ export default function SponsorshipTiers({
   setSponsorshipTiers,
   benefitData,
   errors,
+  setErrors,
 }: SponsorshipTiersProps) {
   const [benefits, setBenefits] = useState<Record<string, { minAmount: number; benefitIds: string[] }>>(() => {
     const initialBenefits: Record<string, { minAmount: number; benefitIds: string[] }> = {};
     TIERS.forEach(tier => {
-      // Nếu sponsorshipTiers không tồn tại hoặc rỗng, khởi tạo với giá trị mặc định
       const existingTier = sponsorshipTiers?.find(t => t.name === tier.name);
       initialBenefits[tier.key] = {
         minAmount: existingTier?.minAmount ? parseFloat(existingTier.minAmount.toString()) : 0,
-        benefitIds: existingTier?.benefits?.map(benefit => benefit.id) || [] // Lấy benefitIds từ benefits
+        benefitIds: existingTier?.benefits?.map(benefit => benefit.id) || [],
       };
     });
     return initialBenefits;
   });
 
   useEffect(() => {
-    // Chuyển đổi dữ liệu từ state benefits sang SponsorshipTier để gửi lên form
+    const newErrors: Record<string, string> = { ...errors };
+
+    const diamondAmount = benefits["diamond"].minAmount;
+    const platinumAmount = benefits["platinum"].minAmount;
+    const goldAmount = benefits["gold"].minAmount;
+    const silverAmount = benefits["silver"].minAmount;
+
+    TIERS.forEach(tier => delete newErrors[`minAmount-${tier.key}`]);
+
+    if (silverAmount >= goldAmount && goldAmount > 0) {
+      newErrors["minAmount-silver"] = "Số tiền tối thiểu của Đồng phải nhỏ hơn Bạc.";
+      newErrors["minAmount-gold"] = "Số tiền tối thiểu của Bạc phải lớn hơn Đồng.";
+    }
+    if (goldAmount >= platinumAmount && platinumAmount > 0) {
+      newErrors["minAmount-gold"] = "Số tiền tối thiểu của Bạc phải nhỏ hơn Vàng.";
+      newErrors["minAmount-platinum"] = "Số tiền tối thiểu của Vàng phải lớn hơn Bạc.";
+    }
+    if (platinumAmount >= diamondAmount && diamondAmount > 0) {
+      newErrors["minAmount-platinum"] = "Số tiền tối thiểu của Vàng phải nhỏ hơn Kim cương.";
+      newErrors["minAmount-diamond"] = "Số tiền tối thiểu của Kim cương phải lớn hơn Vàng.";
+    }
+
+    setErrors(newErrors);
+  }, [benefits, setErrors]);
+
+  useEffect(() => {
     const updatedTiers: SponsorshipTierDTO[] = TIERS.map(tier => ({
-      id: sponsorshipTiers?.find(t => t.name === tier.name)?.id || "", // Use existing id or default to an empty string
+      id: sponsorshipTiers?.find(t => t.name === tier.name)?.id || "",
       name: tier.name,
-      minAmount: benefits[tier.key].minAmount.toString(), // Convert minAmount to string
+      minAmount: benefits[tier.key].minAmount.toString(),
       sponsorBenefitIds: benefits[tier.key].benefitIds,
-      createdAt: sponsorshipTiers?.find(t => t.name === tier.name)?.createdAt || new Date().toISOString(), // Use existing or default timestamp
-      updatedAt: new Date().toISOString(), // Set updated timestamp
-      event: sponsorshipTiers?.find(t => t.name === tier.name)?.event || null, // Use existing event or null
-      benefits: benefitData.filter(b => benefits[tier.key].benefitIds.includes(b.id)) // Map benefit objects
+      createdAt: sponsorshipTiers?.find(t => t.name === tier.name)?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      event: sponsorshipTiers?.find(t => t.name === tier.name)?.event || null,
+      benefits: benefitData.filter(b => benefits[tier.key].benefitIds.includes(b.id)),
     }));
     setSponsorshipTiers(updatedTiers);
-  }, [benefits, setSponsorshipTiers]);
+  }, [benefits, setSponsorshipTiers, benefitData]);
 
   const benefitOptions = useMemo(() => {
     return benefitData.map(benefit => ({
       key: benefit.id,
-      label: benefit.title || "Unknown"
+      label: benefit.title || "Unknown",
     }));
   }, [benefitData]);
 
+  const formatNumber = (num: number) => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
   const handleMinAmountChange = (tierKey: string, value: string) => {
-    const cleanValue = value.replace(/[^\d]/g, '');
+    const cleanValue = value.replace(/[^\d]/g, "");
     const numberValue = cleanValue ? parseInt(cleanValue) : 0;
-    
+
     setBenefits(prev => ({
       ...prev,
       [tierKey]: {
         ...prev[tierKey],
-        minAmount: numberValue
-      }
+        minAmount: numberValue,
+      },
     }));
   };
 
   const handlePerksChange = (tierKey: string, keys: Set<string>) => {
     const benefitIds = Array.from(keys);
-    
+
     setBenefits(prev => ({
       ...prev,
       [tierKey]: {
         ...prev[tierKey],
-        benefitIds
-      }
+        benefitIds,
+      },
     }));
   };
 
@@ -105,19 +135,12 @@ export default function SponsorshipTiers({
                 label="Số tiền tối thiểu (VNĐ)"
                 size="lg"
                 labelPlacement="outside"
-                placeholder="VD: 500,000 VND"
+                placeholder="VD: 500,000"
                 variant="bordered"
-                value={
-                  benefits[tier.key].minAmount
-                    ? new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                        minimumFractionDigits: 0,
-                      }).format(benefits[tier.key].minAmount)
-                    : ""
-                }
+                value={benefits[tier.key].minAmount ? formatNumber(benefits[tier.key].minAmount) : ""}
                 onChange={(e) => handleMinAmountChange(tier.key, e.target.value)}
                 className="w-full"
+                endContent={<span className="text-gray-500">đ</span>}
                 errorMessage={errors[`minAmount-${tier.key}`]}
                 isInvalid={!!errors[`minAmount-${tier.key}`]}
               />

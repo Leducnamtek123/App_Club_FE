@@ -8,7 +8,7 @@ import WebSocketComponent from "@/components/ui/WsComponent";
 export default function Page() {
   return (
     <div className="w-full p-5 space-y-5">
-      {/* <WebSocketComponent></WebSocketComponent> */}
+      {/* <WebSocketComponent/> */}
       <DashboardCards />
       <div className="w-full flex flex-col md:flex-row gap-5">
         <div className="w-full md:w-1/2 bg-white p-5 border border-gray-300 shadow-lg rounded-lg">

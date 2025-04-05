@@ -1,46 +1,106 @@
+'use client'; // Đánh dấu đây là Client Component trong Next.js
+
+import { getGrowthUserReport } from "@/services/report/reportServices";
 import {
-  CategoryScale,
   Chart as ChartJS,
-  Legend,
+  CategoryScale,
   LinearScale,
-  LineElement,
   PointElement,
+  LineElement,
   Tooltip,
+  Legend,
 } from "chart.js";
-import React from "react";
 import { Line } from "react-chartjs-2";
+import { useEffect, useState } from "react";
 
-// Đăng ký các thành phần cần thiết
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
-const MembershipGrowthChart: React.FC = () => {
-  // Dữ liệu và cấu hình biểu đồ
-  const data = {
-    labels: ["2020", "2021", "2022", "2023", "2024", "2025"], // Các năm
+// Đăng ký các thành phần Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+);
+
+const MembershipGrowthChart = () => {
+  const [chartData, setChartData] = useState({
+    labels: ["2020", "2021", "2022", "2023", "2024", "2025"],
     datasets: [
       {
         label: "Hội viên",
-        data: [100, 120, 170, 248, 260, 350], // Số lượng hội viên
-        borderColor: "#00E396", // Màu đường: xanh lá
-        backgroundColor: "rgba(0, 227, 150, 0.2)", // Màu nền dưới đường
-        fill: true, // Điền màu dưới đường
-        tension: 0.4, // Đường cong mượt mà
-        pointRadius: 4, // Kích thước điểm
-        pointHoverRadius: 6, // Kích thước điểm khi hover
+        data: [0, 0, 0, 0, 0, 0],
+        borderColor: "#00E396",
+        backgroundColor: "rgba(0, 227, 150, 0.2)",
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
+  });
+
+  // Fetch dữ liệu từ API
+  const fetchData = async () => {
+    try {
+      const response = await getGrowthUserReport({});
+      const yearData = response.data || response; // Điều chỉnh nếu API trả về dạng { data: [...] }
+
+      // Khởi tạo mảng dữ liệu cho các năm
+      const yearCounts = {
+        2020: 0,
+        2021: 0,
+        2022: 0,
+        2023: 0,
+        2024: 0,
+        2025: 0,
+      };
+
+      // Cập nhật số lượng hội viên theo năm từ dữ liệu API
+      yearData.forEach((item) => {
+        const year = item.year;
+        if (year >= 2020 && year <= 2025) {
+          yearCounts[year] = item.userCount;
+        }
+      });
+
+      // Cập nhật chartData
+      setChartData({
+        labels: ["2020", "2021", "2022", "2023", "2024", "2025"],
+        datasets: [
+          {
+            label: "Hội viên",
+            data: Object.values(yearCounts), // Chuyển object thành mảng giá trị
+            borderColor: "#00E396",
+            backgroundColor: "rgba(0, 227, 150, 0.2)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching growth report:", error);
+    }
   };
 
-  // Cấu hình tùy chọn
-  const options: import("chart.js").ChartOptions<"line"> = {
+  // Gọi fetchData khi component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Cấu hình options cho chart
+  const options = {
     responsive: true,
     plugins: {
       legend: {
-        position: "top" as const, // Chú thích ở trên
+        position: "top",
       },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.parsed.y} hội viên`, // Hiển thị giá trị trong tooltip
+          label: (context) => `${context.parsed.y} hội viên`,
         },
       },
     },
@@ -56,16 +116,15 @@ const MembershipGrowthChart: React.FC = () => {
           display: true,
           text: "Số lượng hội viên",
         },
-        beginAtZero: false, // Không bắt đầu từ 0 để rõ xu hướng
+        beginAtZero: true,
       },
     },
   };
 
   return (
-    <div>
-      <h2>Tăng trưởng hội viên theo năm</h2>
-      <Line data={data} options={options} />
-    </div>
+   
+        <Line data={chartData} options={options} />
+   
   );
 };
 

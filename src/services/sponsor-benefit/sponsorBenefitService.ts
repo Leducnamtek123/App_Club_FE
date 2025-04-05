@@ -1,30 +1,37 @@
 import apiService from "@/lib/api/api";
-import { EventAggregateDTO } from "@/lib/model/type";
 
-export const getBenefits = async ({
-  page = 1,
-  take = 10,
-  q = "",
-  title = "",
-  order = undefined,
-
-}: {
-  page?: number;
-  take?: number;
-  q?: string;
-  title?:string;
-  order?: string;
-
-}) => {
+export const getAllSponsorBenefits = async ()=>{
   try {
-    const params: { [key: string]: any } = { page, take };
-    if (q) params.q = q;
-    if (order) params.order = order;
-    if (status) params.status = status;
-    if (title) params.title = title;
-    const response = await apiService.get("/sponsor-benefits", params);
+    const response = await apiService.get("/sponsor-benefits");
     return response;
   } catch (error) {
-    return error;
+    throw error;
   }
-};
+}
+
+export const addSponsorBenefit = async(data:object)=>{
+  try {
+    const response = await apiService.post("/sponsor-benefits",data);
+    return response;
+  } catch (error) {
+    
+  }
+}
+
+export const updateSponsorBenefit = async(id:string,data:object)=>{
+  try {
+    const response = await apiService.put(`/sponsor-benefits/${id}`,data);
+    return response;
+  } catch (error) {
+    
+  }
+}
+
+export const deleteSponsorBenefit = async(id:string)=>{
+  try {
+    const response = await apiService.delete(`/sponsor-benefits/${id}`);
+    return response;
+  } catch (error) {
+    
+  }
+}

@@ -40,8 +40,14 @@ export default function Page() {
   const [deletingIds, setDeletingIds] = useState([]);
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false); // State cho modal
-  const [selectedNewsId, setSelectedNewsId] = useState(null); // ID của tin tức được chọn để xóa
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNewsId, setSelectedNewsId] = useState(null);
+
+  const userRole =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+  const isAdmin = role === "ADMIN";
 
   const [filters, setFilters] = useState({
     q: "",
@@ -49,6 +55,7 @@ export default function Page() {
     take: 6,
     isPublished: undefined,
     category: undefined,
+    branchId: undefined, // Added branchId to filters
   });
 
   const [meta, setMeta] = useState({
@@ -60,7 +67,15 @@ export default function Page() {
 
   const fetchNews = () => {
     setIsLoading(true);
-    getAllNews(filters)
+    // Get branchId from localStorage if user is ADMIN
+    const userBranchId = isAdmin && parsedUser?.branch?.id ? parsedUser?.branch?.id : undefined;
+    
+    // Combine filters with branchId for ADMIN
+    const fetchFilters = isAdmin 
+      ? { ...filters, branchId: userBranchId }
+      : { ...filters };
+
+    getAllNews(fetchFilters)
       .then((response) => {
         setData(response?.data ?? []);
         setMeta(response?.meta ?? meta);
@@ -71,7 +86,7 @@ export default function Page() {
 
   useEffect(() => {
     fetchNews();
-  }, [filters]);
+  }, [filters, isAdmin, parsedUser?.branch?.id]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -82,8 +97,8 @@ export default function Page() {
   };
 
   const handleDeleteClick = (newsId) => {
-    setSelectedNewsId(newsId); // Lưu ID của tin tức cần xóa
-    setIsModalOpen(true); // Mở modal
+    setSelectedNewsId(newsId);
+    setIsModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -106,7 +121,7 @@ export default function Page() {
       });
     } finally {
       setDeletingIds((prev) => prev.filter((id) => id !== selectedNewsId));
-      setSelectedNewsId(null); // Reset ID sau khi xóa
+      setSelectedNewsId(null);
     }
   };
 
@@ -153,6 +168,7 @@ export default function Page() {
             </div>
             <div className="flex justify-items-end gap-4">
               <Select
+                aria-label="status"
                 variant="bordered"
                 placeholder="Trạng thái đăng"
                 className="w-40 bg-white rounded-large"
@@ -166,6 +182,7 @@ export default function Page() {
               </Select>
 
               <Select
+                aria-label="type"
                 variant="bordered"
                 placeholder="Loại"
                 className="w-40 bg-white rounded-large"
@@ -220,7 +237,7 @@ export default function Page() {
                   <DropdownMenu
                     onAction={(key) =>
                       key === "delete"
-                        ? handleDeleteClick(item.id) // Gọi hàm mở modal
+                        ? handleDeleteClick(item.id)
                         : router.push(`/news/form?id=${item.id}`)
                     }
                   >
@@ -254,7 +271,7 @@ export default function Page() {
                     <div className="flex items-end">
                       <p className="text-gray-400 text-sm">Ngày đăng: {new Date(item.createdAt).toLocaleDateString("vi-VN")}</p>
                     </div>
-                    <div className="flex gap-5 justify-end md:block md:gap-5">
+                    <div className="flex gap-5 justify-end md:gap-2 md:justify-end flex-wrap">
                       <Chip
                         size="sm"
                         variant="bordered"
@@ -265,7 +282,7 @@ export default function Page() {
                             ? "primary"
                             : "danger"
                         }
-                        className="me-2"
+                        className=""
                       >
                         {item.category === "EVENT"
                           ? "Sự kiện"
@@ -296,7 +313,6 @@ export default function Page() {
         className="mt-5"
       />
 
-      {/* Thêm ConfirmationModal */}
       <ConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -2,12 +2,12 @@
 import React, { useEffect, useState } from "react";
 import useWebSocket from "@/hooks/useWebSocket";
 import { NotificationDto } from "@/lib/model/type";
+
 const WebSocketComponent = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
-  const { messages } = useWebSocket(userId);
+  const { messages } = useWebSocket(userId || undefined); // Truyền undefined nếu không có userId
 
-  // Chỉ lấy userId từ localStorage trên client-side
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
@@ -19,20 +19,9 @@ const WebSocketComponent = () => {
   }, []);
 
   useEffect(() => {
-    if (!messages) return;
-
-    const receivedNotifications: NotificationDto[] = messages.map((msg) => ({
-      id: msg.id,
-      createdAt: msg.createdAt,
-      updatedAt: msg.updatedAt,
-      title: msg.title,
-      message: msg.message,
-      isRead: msg.isRead,
-      type: msg.type,
-      userId: msg.userId,
-    }));
-
-    setNotifications(receivedNotifications);
+    if (messages.length > 0) {
+      setNotifications(messages);
+    }
   }, [messages]);
 
   if (userId === null) {
@@ -41,19 +30,23 @@ const WebSocketComponent = () => {
 
   return (
     <div className="p-4">
-      <h2>Thông báo</h2>
+      <h2>Thông báo {userId ? `cho user ${userId}` : "(Broadcast)"}</h2>
       <div className="border p-2 h-40 overflow-auto">
-        {notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className={`notification ${notification.isRead ? "read" : "unread"}`}
-            style={{ padding: "10px", border: "1px solid #ccc", marginBottom: "10px" }}
-          >
-            <h3>{notification.title}</h3>
-            <p>{notification.message}</p>
-            <small>{new Date(notification.createdAt).toLocaleString()}</small>
-          </div>
-        ))}
+        {notifications.length === 0 ? (
+          <p>Chưa có thông báo</p>
+        ) : (
+          notifications.map((notification) => (
+            <div
+              key={notification.id || Math.random().toString()}
+              className={`notification ${notification.isRead ? "read" : "unread"}`}
+              style={{ padding: "10px", border: "1px solid #ccc", marginBottom: "10px" }}
+            >
+              <h3>{notification.title}</h3>
+              <p>{notification.message}</p>
+              <small>{new Date(notification.createdAt).toLocaleString()}</small>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

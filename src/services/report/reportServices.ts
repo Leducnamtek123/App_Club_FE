@@ -8,12 +8,33 @@ export const getMembershipFeeByBranch = async (branchId: string) => {
     return response;
   } catch (error) {}
 };
-export const getEventReportBranch = async (branchId: string) => {
+// export const getEventReportBranch = async (branchId: string) => {
+//   try {
+//     const response = await apiService.get(`/events/report/?${branchId}`);
+//     return response;
+//   } catch (error) {}
+// };
+// export const getEventReport = async ({branchId= undefined}:{branchId:string}) => {
+//   try {
+//     const params :{[key:string]:any}  ={}
+//     if(branchId) params.branchId = branchId
+//     const response = await apiService.get(`/events/report`,params);
+//     return response;
+//   } catch (error) {}
+// };
+
+export const getEventReport = async ({ branchId }: { branchId?: string }) => {
   try {
-    const response = await apiService.get(`/events/report/?${branchId}`);
+    const params: { [key: string]: any } = {};
+    if (branchId) params.branchId = branchId;
+    const response = await apiService.get("/events/report", params);
     return response;
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error in getEventReport:", error);
+    throw error;
+  }
 };
+
 
 export const getSponsorRanking = async ({
   order = "ASC",
@@ -42,6 +63,18 @@ export const getSponsorRanking = async ({
     );
     return response;
   } catch (error) {
+    throw error;
+  }
+};
+
+export const getGrowthUserReport = async ({ branchId }: { branchId?: string }) => {
+  try {
+    const params: { [key: string]: any } = {};
+    if (branchId) params.branchId = branchId;
+    const response = await apiService.get("/users/stats-by-year", params);
+    return response;
+  } catch (error) {
+    console.error("Error in getEventReport:", error);
     throw error;
   }
 };

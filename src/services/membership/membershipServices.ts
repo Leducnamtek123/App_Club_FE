@@ -15,7 +15,7 @@ export const getApprovedUser = async ({
   order?: string;
   branchId?: string | undefined;
   status?: string;
-  role?: string
+  role?: string;
 }) => {
   try {
     const params: { [key: string]: any } = { page, take };
@@ -23,7 +23,7 @@ export const getApprovedUser = async ({
     if (order) params.order = order;
     if (branchId) params.branchId = branchId;
     if (status) params.status = status;
-    if (role) params.role = role
+    if (role) params.role = role;
     const response = await apiService.get("/users", params);
     return response;
   } catch (error) {
@@ -54,17 +54,16 @@ export const updateUser = async (userId: string, data: object) => {
   } catch (error) {
     throw error;
   }
-}
+};
 
-export const deleteUser = async (userId:string)=>{
+export const deleteUser = async (userId: string) => {
   try {
     const response = await apiService.delete(`/users/${userId}`);
     return response;
   } catch (error) {
     throw error;
   }
-}
-
+};
 
 export const approvedUser = async (userID: string) => {
   try {
@@ -88,6 +87,15 @@ export const rejectUser = async (userID: string) => {
         response.data?.message || "Có lỗi xảy ra, vui lòng kiểm tra lại.";
       throw new Error(errorMessage);
     }
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const unbanUser = async (userId: string) => {
+  try {
+    const response = await apiService.patch(`/users/${userId}/unban`);
     return response;
   } catch (error) {
     throw error;
@@ -160,43 +168,52 @@ export const getAllMemberFee = async ({
     throw error;
   }
 };
+interface ExportMembersParams {
+  branchId?: string;
+  status?: string;
+}
+
+interface GeneratePDFResponse {
+  jobId: string;
+  downloadUrl: string;
+}
 
 export const exportMembersToPDF = async ({
   branchId,
   status = "approved",
-}) => {
+}: ExportMembersParams) => {
   try {
     const response = await apiService.get("/export/members-pdf", {
       params: {
-        branchId, // Lọc theo chi hội nếu có
-        status,   // Lọc theo trạng thái, mặc định là "approved"
+        branchId, // Filter by branch if provided
+        status, // Filter by status, default to "approved"
       },
-      responseType: "blob", // Nhận dữ liệu binary (PDF)
     });
 
-    return response;
+    return response; // Returns { jobId, downloadUrl }
   } catch (error) {
-    console.error("Error exporting members to PDF:", error);
+    console.error("Error generating members PDF:", error);
     throw error;
   }
 };
 
 export const downloadPDF = async (fileName: string) => {
   try {
-    const response = await apiService.get(`export/downloads/${fileName}`,{
-      responseType: "blob", // Quan trọng: yêu cầu dữ liệu trả về là Blob
-    })
+    const response = await apiService.get(`export/downloads/${fileName}`, {
+      responseType: "blob", // Important: request response as Blob for PDF
+    });
     return response;
   } catch (error) {
+    console.error("Error downloading PDF:", error);
     throw error;
   }
-}
+};
 
-export const lockAccount = async (userId :string)=>{
+export const lockAccount = async (userId: string) => {
   try {
     const response = await apiService.patch(`/users/${userId}/ban`);
     return response;
   } catch (error) {
     throw error;
   }
-}
+};

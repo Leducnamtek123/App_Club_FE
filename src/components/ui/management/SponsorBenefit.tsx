@@ -12,18 +12,18 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
-import ModalCreateTitle from "@/components/ui/title/createTitle";
-import { deleteTitle, getTitle } from "@/services/title/titleServices";
-import { MemberTitle, Title } from "@/lib/model/type";
+import ModalCreateSponsorBenefit from "../benefit/SponsorBenefitForm";
+import { deleteSponsorBenefit, getAllSponsorBenefits } from "@/services/sponsor-benefit/sponsorBenefitService";
+import { Benefit, MemberTitle, Title } from "@/lib/model/type";
 import { useEffect, useState } from "react";
 import { ConfirmationModal } from "../ConfirmationModal";
 
-export default function TitleManagement() {
-  const [titles, setTitles] = useState<Title[]>([]);
+export default function SponsorBenefit() {
+  const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTitle, setSelectedTitle] = useState<Title | null>(null);
-  const [selectedTitleId, setSelectedTitleId] = useState<string | null>(null);
+  const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
+  const [selectedBenefitId, setSelectedBenefitId] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
@@ -35,11 +35,11 @@ export default function TitleManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const titleData = await getTitle();
-      setTitles(titleData);
+      const benefitData = await getAllSponsorBenefits();
+      setBenefits(benefitData);
     } catch (error) {
-      console.error("Error fetching titles:", error);
-      setTitles([]);
+      console.error("Error fetching benefits:", error);
+      setBenefits([]);
     } finally {
       setIsLoading(false);
     }
@@ -50,18 +50,18 @@ export default function TitleManagement() {
   }, []);
 
   const columns = [
-    { name: "Danh hiệu", uid: "name" },
+    { name: "Tên quyền lợi", uid: "name" },
     { name: "Mô tả", uid: "description" },
     { name: "", uid: "actions" },
   ];
 
   const handleDeleteClick = (id: string) => {
-    setSelectedTitleId(id);
+    setSelectedBenefitId(id);
     setIsDeleteModalOpen(true);
   };
 
   const columnsConfig = {
-    name: (data: any) => <div className="w-40 truncate">{data.name}</div>,
+    name: (data: any) => <div className="w-32 truncate">{data.title}</div>,
     description: (data: any) => (
       <div className="w-32 truncate">{data.description}</div>
     ),
@@ -95,8 +95,9 @@ export default function TitleManagement() {
     ),
   };
 
-  const handleEdit = (title: Title) => {
-    setSelectedTitle(title);
+  const handleEdit = (benefit: Benefit) => {
+    setSelectedBenefitId(benefit.id);
+    setSelectedBenefit(benefit);
     setIsModalOpen(true);
   };
 
@@ -109,13 +110,13 @@ export default function TitleManagement() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedTitleId) return;
+    if (!selectedBenefitId) return;
 
     try {
-      const response = await deleteTitle(selectedTitleId);
+      const response = await deleteSponsorBenefit(selectedBenefitId);
       addToast({
         title: "Thành công",
-        description: "Xóa danh hiệu thành công!",
+        description: "Xóa quyền lợi thành công!",
         color: "success",
         variant: "bordered",
       });
@@ -123,12 +124,12 @@ export default function TitleManagement() {
     } catch (error) {
       addToast({
         title: "Lỗi",
-        description: "Xóa danh hiệu thất bại!",
+        description: "Xóa quyền lợi thất bại!",
         color: "danger",
       });
     } finally {
       setIsDeleteModalOpen(false);
-      setSelectedTitleId(null);
+      setSelectedBenefitId(null);
     }
   };
 
@@ -136,53 +137,53 @@ export default function TitleManagement() {
   const getPaginatedData = () => {
     const startIndex = (filters.page - 1) * filters.take;
     const endIndex = startIndex + filters.take;
-    return titles.slice(startIndex, endIndex);
+    return benefits.slice(startIndex, endIndex);
   };
 
   // Calculate total pages
-  const totalPages = Math.ceil(titles.length / filters.take);
+  const totalPages = Math.ceil(benefits.length / filters.take);
 
   return (
     <div className="w-full bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
       <div className="flex items-center justify-between w-full">
-        <div className="font-bold text-lg">Danh hiệu</div>
+        <div className="font-bold text-lg">Quyền lợi nhà tài trợ</div>
         <Button
           endContent={<FaPlus />}
           color="primary"
           onPress={() => {
-            setSelectedTitle(null);
+            setSelectedBenefit(null);
             setIsModalOpen(true);
           }}
         >
-          Thêm mới danh hiệu
+          Thêm mới quyền lợi
         </Button>
       </div>
 
       <TableCustomize
-        ariaLabel="Member Title List"
+        ariaLabel="Sponsor Benefits List"
         columns={columns}
         columnsConfig={columnsConfig}
         searchBy={"name"}
-        data={getPaginatedData()} // Use paginated data
+        data={getPaginatedData()}
         isLoading={isLoading}
         page={filters.page}
-        totalPages={totalPages} // Use calculated total pages
+        totalPages={totalPages}
         onPageChange={(page: number) => handleFilterChange("page", page)}
       />
 
-      <ModalCreateTitle
+      <ModalCreateSponsorBenefit
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
-        setSelectedData={setSelectedTitle}
+        setSelectedData={setSelectedBenefit}
         refreshData={fetchData}
-        selectedItem={selectedTitle}
+        selectedItem={selectedBenefit}
       />
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
-        title="Xác nhận xóa danh hiệu"
-        message="Bạn có chắc chắn muốn xóa này không? Hành động này không thể hoàn tác."
+        title="Xác nhận xóa quyền lợi"
+        message="Bạn có chắc chắn muốn xóa quyền lợi này không? Hành động này không thể hoàn tác."
         confirmText="Xóa"
         cancelText="Hủy"
         confirmColor="danger"

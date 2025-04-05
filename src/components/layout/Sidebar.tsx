@@ -20,6 +20,12 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   const pathname = usePathname();
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
 
+  // Lấy thông tin user từ localStorage
+  const userRole =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+
   const toggleSubMenu = (menu: string) => {
     setOpenSubMenu(openSubMenu === menu ? null : menu);
   };
@@ -66,17 +72,20 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
         { label: "Chung", href: "/management/general" },
         { label: "Chi hội trưởng", href: "/management/branch-leader" },
         { label: "Giới thiệu", href: "/management/introduction" },
-      ],
+      ].filter((subItem) =>
+        // Ẩn "Chi hội trưởng" và "Giới thiệu" nếu role là ADMIN
+        role === "ADMIN"
+          ? subItem.label !== "Chi hội trưởng" && subItem.label !== "Giới thiệu"
+          : true
+      ),
     },
   ];
 
   const handleMenuClick = (itemHref: string) => {
-    // Nếu sidebar đang thu nhỏ, mở sidebar và mở submenu
     if (!isSidebarOpen) {
       setIsSidebarOpen(true);
       setOpenSubMenu(itemHref); // Mở submenu khi sidebar mở
     } else {
-      // Nếu sidebar đang mở, chỉ cần mở submenu mà không thay đổi sidebar
       toggleSubMenu(itemHref);
     }
   };
@@ -101,7 +110,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
         {/* Header Sidebar */}
         <div className="p-4 flex items-center justify-between h-16">
           {isSidebarOpen && (
-            <p className="text-gray-900 font-bold text-2xl">Dashboard</p>
+            <div className="text-gray-900 font-bold text-2xl">Dashboard</div>
           )}
 
           {/* Nút đóng/mở Sidebar (Hiển thị trên Desktop luôn) */}

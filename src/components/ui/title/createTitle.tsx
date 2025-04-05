@@ -9,6 +9,7 @@ import {
     ModalContent,
     ModalFooter,
     ModalHeader,
+    Textarea,
     addToast
 } from "@heroui/react";
 import { useState, useEffect } from "react";
@@ -32,7 +33,7 @@ export default function ModalCreateItem({
 }: ModalCreateItemProps) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    //const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Set form values when editing
@@ -40,11 +41,11 @@ export default function ModalCreateItem({
         if (selectedItem && isModalOpen) {
             setName(selectedItem.name || "");
             setDescription(selectedItem.description || "");
-            setFile(null); // File không được preload khi chỉnh sửa
+        //    setFile(null); // File không được preload khi chỉnh sửa
         } else {
             setName("");
             setDescription("");
-            setFile(null);
+        //    setFile(null);
         }
     }, [selectedItem, isModalOpen]);
 
@@ -54,7 +55,7 @@ export default function ModalCreateItem({
             // Reset form và selectedItem khi đóng
             setName("");
             setDescription("");
-            setFile(null);
+      //      setFile(null);
             setSelectedData(null);
         }
     };
@@ -83,16 +84,16 @@ export default function ModalCreateItem({
         }
         
         // Chỉ yêu cầu file khi tạo mới, không yêu cầu khi cập nhật
-        if (!selectedItem && !file) {
-            addToast({
-                title: "Lỗi",
-                description: "Vui lòng chọn một file.",
-                variant: "solid",
-                color: "danger",
-                classNames: { base: "z-3" },
-            });
-            return false;
-        }
+        // if (!selectedItem && !file) {
+        //     addToast({
+        //         title: "Lỗi",
+        //         description: "Vui lòng chọn một file.",
+        //         variant: "solid",
+        //         color: "danger",
+        //         classNames: { base: "z-3" },
+        //     });
+        //     return false;
+        // }
         
         return true;
     };
@@ -103,7 +104,7 @@ export default function ModalCreateItem({
         const formData = new FormData();
         formData.append("name", name);
         formData.append("description", description);
-        if (file) formData.append("icon", file);
+    //    if (file) formData.append("icon", file);
 
         setIsSubmitting(true);
         try {
@@ -112,7 +113,7 @@ export default function ModalCreateItem({
                 addToast({
                     title: "Thành công",
                     description: "Cập nhật danh hiệu thành công.",
-                    variant: "solid",
+                    variant: "bordered",
                     color: "success",
                     classNames: { base: "z-3" },
                 });
@@ -121,7 +122,7 @@ export default function ModalCreateItem({
                 addToast({
                     title: "Thành công",
                     description: "Tạo danh hiệu thành công.",
-                    variant: "solid",
+                    variant: "bordered",
                     color: "success",
                     classNames: { base: "z-3" },
                 });
@@ -156,14 +157,14 @@ export default function ModalCreateItem({
                 <ModalBody>
                     <Form className="flex flex-col gap-6">
                         <Input
-                            label="Tên"
+                            label="Danh hiệu"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Nhập tên"
+                            placeholder="Nhập tên danh hiệu"
                             isRequired
                         />
-                        <Input
+                        <Textarea
                             label="Mô tả"
                             type="text"
                             value={description}
@@ -171,11 +172,11 @@ export default function ModalCreateItem({
                             placeholder="Nhập mô tả"
                             isRequired
                         />
-                        <input
+                        {/* <input
                             type="file"
                             onChange={(e) => setFile(e.target.files?.[0] || null)}
                             className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        />
+                        /> */}
                     </Form>
                 </ModalBody>
                 <ModalFooter className="flex justify-end gap-4">

@@ -62,7 +62,7 @@ const FeeChart = ({ feeData }: any) => {
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-2">Tổng hội phí qua các năm</h3>
+      <h3 className="text-lg font-semibold mb-2">Tổng hội phí qua các năm theo chi hội</h3>
       <Line data={data} options={options} />
     </div>
   );

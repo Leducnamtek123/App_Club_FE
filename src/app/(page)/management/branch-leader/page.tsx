@@ -21,8 +21,6 @@ import { getMembershipLeaders, removeMembershipLeader } from "@/services/members
 import CreateMembershipLeader from "@/components/ui/membership_leader/createMembershipLeader";
 import FormEditMembershipLeader from "@/components/ui/membership_leader/editMembershilLeader";
 
-
-
 const columns = [
     { name: "Chi hội", uid: "branch" },
     { name: "Họ và tên", uid: "name", sortable: true },
@@ -49,6 +47,8 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchInput, setSearchInput] = useState("");
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false); // New state for bulk delete modal
 
     const [filters, setFilters] = useState({
         search: "",
@@ -56,7 +56,7 @@ export default function Page() {
         startDate: undefined,
         endDate: undefined,
         page: 1,
-        take: 12,
+        take: 10,
     });
     const [meta, setMeta] = useState({
         page: 1,
@@ -66,8 +66,6 @@ export default function Page() {
         hasPreviousPage: false,
         hasNextPage: false,
     });
-
-
 
     useEffect(() => {
         fetchData();
@@ -80,8 +78,6 @@ export default function Page() {
                 ...filters,
                 role: "ADMIN",
             });
-            console.log("Membership leader:: ", response);
-
             setMembershipLeader(response.data);
             setMeta(response.meta);
         } catch {
@@ -116,7 +112,7 @@ export default function Page() {
         });
     };
 
-    const handleFilterChange = (key, value) => {
+    const handleFilterChange = (key: string, value: any) => {
         setFilters((prev) => ({
             ...prev,
             [key]: value,
@@ -125,7 +121,8 @@ export default function Page() {
     };
 
     const handleSelectionChange = (selectedIds, selectedItems) => {
-        console.log("Selected Item", selectedItems);
+        setSelectedItems(selectedItems);
+        console.log("Selected Items:", selectedItems);
     };
 
     const handleInputChange = (value) => {
@@ -141,7 +138,6 @@ export default function Page() {
 
     const handleDeleteConfirm = async () => {
         if (!selectedData) return;
-
         try {
             const response = await removeMembershipLeader(selectedData.id);
             addToast({
@@ -160,6 +156,41 @@ export default function Page() {
         } finally {
             setIsDeleteModalOpen(false);
             setSelectedData(null);
+        }
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (selectedItems.length > 0) {
+            setIsBulkDeleteModalOpen(true);
+        }
+    };
+
+    const handleBulkDeleteConfirm = async () => {
+        if (selectedItems.length === 0) return;
+
+        try {
+            // Use Promise.all to delete all selected items in parallel
+            const deletePromises = selectedItems.map(item => 
+                removeMembershipLeader(item.id)
+            );
+            await Promise.all(deletePromises);
+
+            addToast({
+                title: "Thành công",
+                description: `Đã xóa ${selectedItems.length} chi hội trưởng thành công!`,
+                color: "success",
+                variant: "bordered",
+            });
+            fetchData();
+            setSelectedItems([]); // Clear selection after deletion
+        } catch (error) {
+            addToast({
+                title: "Lỗi",
+                description: "Xóa chi hội trưởng thất bại!",
+                color: "danger",
+            });
+        } finally {
+            setIsBulkDeleteModalOpen(false);
         }
     };
 
@@ -223,34 +254,34 @@ export default function Page() {
                 <p className="font-bold text-2xl mb-10">Danh sách chi hội trưởng</p>
                 <div className="flex justify-between">
                     <div className="flex gap-5">
-
-                        <Input
-                            placeholder="Tìm kiếm"
-                            startContent={<FaSearch className="text-gray-500" />}
-                            value={searchInput}
-                            radius="none"
-                            onChange={(e) => handleInputChange(e.target.value)}
-                            className="w-full bg-white border-none focus:ring-0"
-                            classNames={{ inputWrapper: "bg-white" }}
-                        />
-
-                        {/* <Input
-                            aria-label="search"
-                            placeholder="Tìm kiếm"
-                            variant="bordered"
-                            startContent={<FaSearch />} 
-                            value={filters.search}
-                            onChange={(e) => handleFilterChange("search", e.target.value)}
-                            className="w-full"
-                        /> */}
+                        <div className="flex items-center h-10 w-full lg:w-auto rounded-lg overflow-hidden border border-gray-300">
+                            <Input
+                                placeholder="Tìm kiếm"
+                                startContent={<FaSearch className="text-gray-500" />}
+                                value={searchInput}
+                                radius="none"
+                                onChange={(e) => handleInputChange(e.target.value)}
+                                className="w-full bg-white border-none focus:ring-0"
+                                classNames={{ inputWrapper: "bg-white" }}
+                            />
+                            <Button
+                                color="primary"
+                                onPress={handleSearch}
+                                className="bg-primary text-white rounded-none px-4"
+                                isIconOnly
+                            >
+                                <FaSearch />
+                            </Button>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
                             color="danger"
+                            onPress={handleBulkDeleteClick}
+                            isDisabled={selectedItems.length === 0}
                         >
                             Xóa
                         </Button>
-
                         <Button
                             endContent={<FaPlus />}
                             color="primary"
@@ -306,6 +337,17 @@ export default function Page() {
                 confirmColor="danger"
             />
 
+            <ConfirmationModal
+                isOpen={isBulkDeleteModalOpen}
+                onClose={() => setIsBulkDeleteModalOpen(false)}
+                onConfirm={handleBulkDeleteConfirm}
+                title="Xác nhận xóa nhiều chi hội trưởng"
+                message={`Bạn có chắc chắn muốn xóa ${selectedItems.length} chi hội trưởng không? Hành động này không thể hoàn tác.`}
+                note="Các chi hội trưởng sau khi xóa sẽ không thể khôi phục."
+                confirmText="Xóa"
+                cancelText="Hủy"
+                confirmColor="danger"
+            />
         </section>
     );
 }

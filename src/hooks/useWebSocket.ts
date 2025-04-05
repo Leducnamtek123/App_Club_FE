@@ -1,3 +1,4 @@
+import { News, NotificationDto } from "@/lib/model/type";
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
@@ -13,6 +14,14 @@ const useWebSocket = (userId: string) => {
 
     ws.on("connect", () => {
       console.log("Connected to WebSocket");
+    });
+    ws.on("NEW_EVENT", (data: NotificationDto) => {
+      setMessages((prev) => [...prev, data]);
+      console.log("Received notification:", data);
+    });
+    ws.on("NEWS_PUBLISHED", (data: News) => {
+      setMessages((prev) => [...prev, data]);
+      console.log("Received notification:", data);
     });
 
     ws.on("data", (data) => {

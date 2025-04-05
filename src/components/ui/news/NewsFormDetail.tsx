@@ -12,6 +12,7 @@ import {
 } from "@heroui/react";
 import { News } from "@/lib/model/type";
 import { createNews, updateNews } from "@/services/news/newsServices";
+import { useRouter } from "next/navigation";
 
 export const publishStatus = [
   { key: true, label: "CÔNG KHAI" },
@@ -41,6 +42,7 @@ export default function NewsForm({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const router = useRouter();
 
   const validateField = (name: string, value: string | File | null) => {
     const newErrors = { ...errors };
@@ -153,6 +155,7 @@ export default function NewsForm({
           color: "success",
           classNames: { base: "z-3" },
         });
+        router.push("/news")
       } else {
         await createNews(apiFormData);
         addToast({
@@ -161,6 +164,7 @@ export default function NewsForm({
           color: "success",
           classNames: { base: "z-3" },
         });
+        router.push("/news")
       }
       onSubmit();
     } catch (error) {
@@ -204,7 +208,7 @@ export default function NewsForm({
               labelPlacement="outside"
               variant="bordered"
               placeholder="Chọn trạng thái"
-              defaultSelectedKeys={["false"]}
+              defaultSelectedKeys={[newsData?.isPublished ? "true" : "false"]}
               isDisabled={newsId ? false : true}
               onChange={(e) => {
                 const isPublished = e.target.value === "true";

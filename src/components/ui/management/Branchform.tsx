@@ -10,6 +10,7 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
+  Pagination,
 } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { BiTrash } from "react-icons/bi";
@@ -22,16 +23,18 @@ export const columns = [
   { name: "Thông tin chi tiết", uid: "description" },
   { name: "Chi hội trưởng", uid: "leader" },
   { name: "", uid: "actions" },
-] as never;
-export const searchBy = ["name"] as never;
+];
+export const searchBy = ["name"];
 
 export default function BranchForm() {
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null); // Branch được chọn để chỉnh sửa
+  const [selectedBranchId, setSelectedBranchId] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 5;
 
   const fetchData = async () => {
     try {
@@ -50,12 +53,12 @@ export default function BranchForm() {
     }
   };
 
-  const handleEdit = (branch: Branch) => {
-    setSelectedBranch(branch); // Lưu branch cần chỉnh sửa
-    setIsModalOpen(true); // Mở modal chỉnh sửa
+  const handleEdit = (branch) => {
+    setSelectedBranch(branch);
+    setIsModalOpen(true);
   };
 
-  const handleDeleteClick= (id: string) => {
+  const handleDeleteClick = (id) => {
     setSelectedBranchId(id);
     setIsDeleteModalOpen(true);
   };
@@ -88,24 +91,32 @@ export default function BranchForm() {
     fetchData();
   }, []);
 
+  // Calculate pagination data
+  const totalItems = branches.length;
+  const totalPages = Math.ceil(totalItems / rowsPerPage);
+  const paginatedBranches = branches.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
   const columnsConfig = {
-    branchName: (data: Branch) => (
+    name: (data) => (
       <div className="w-32 truncate">
         <p>{data.name}</p>
       </div>
     ),
-    branchDescription: (data: Branch) => (
+    description: (data) => (
       <div className="w-40 truncate">
         <p>{data.description}</p>
       </div>
     ),
-    leader: (data: Branch) => (
+    leader: (data) => (
       <div className="w-40 truncate">
         <p>{data.leader?.name || "Chưa có"}</p>
       </div>
     ),
-    actions: (data: Branch) => (
-      <div className="relative flex justify-center items-center h-9">
+    actions: (data) => (
+      <div className="relative flex justify-center items-center ">
         <Dropdown>
           <DropdownTrigger>
             <Button isIconOnly variant="light" color="primary">
@@ -135,14 +146,14 @@ export default function BranchForm() {
   };
 
   return (
-    <div className=" bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
+    <div className="bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
       <div className="flex items-center justify-between w-full">
         <div className="font-bold">Thông tin chi hội</div>
         <Button
           endContent={<FaPlus />}
           color="primary"
           onPress={() => {
-            setSelectedBranch(null); // Reset khi tạo mới
+            setSelectedBranch(null);
             setIsModalOpen(true);
           }}
         >
@@ -153,15 +164,13 @@ export default function BranchForm() {
       <TableCustomize
         ariaLabel="Branch table"
         columns={columns}
-        searchBy={searchBy}
-        data={branches}
+        //searchBy={searchBy}
+        data={paginatedBranches}
         columnsConfig={columnsConfig}
         isLoading={isLoading}
-        page={0}
-        totalPages={0}
-        onPageChange={function (page: number): void {
-          throw new Error("Function not implemented.");
-        }}
+        page={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => setCurrentPage(page)}
       />
 
       <ModalCreateBranch
@@ -169,7 +178,7 @@ export default function BranchForm() {
         setIsModalOpen={setIsModalOpen}
         setSelectedData={setBranches}
         refreshData={fetchData}
-        selectedBranch={selectedBranch} // Truyền branch được chọn để chỉnh sửa
+        selectedBranch={selectedBranch}
       />
 
       <ConfirmationModal

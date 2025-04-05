@@ -10,6 +10,7 @@ import { BsFiletypePdf } from "react-icons/bs";
 import {
   addToast,
   Button,
+  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -45,6 +46,7 @@ const columns = [
   { name: "Số điện thoại", uid: "phone" },
   { name: "Chi hội/nhóm ngành", uid: "branch" },
   { name: "Ngày tham gia", uid: "createAt", sortable: true },
+  { name: "Danh hiệu", uid: "title" },
   { name: "Đóng hội phí", uid: "groupFee" },
   { name: "", uid: "actions" },
 ];
@@ -54,11 +56,11 @@ const searchBy = ["name", "companyName", "email", "phone"];
 export default function Page() {
   const [modalState, setModalState] = useState({
     detail: false,
-    notification: false, // Sử dụng để mở form gửi thông báo
+    notification: false,
     fee: false,
     title: false,
     confirm: false,
-    lock:false
+    lock: false,
   });
   const [selectedData, setSelectedData] = useState(null);
   const [members, setMembers] = useState([]);
@@ -80,9 +82,17 @@ export default function Page() {
     hasPreviousPage: false,
     hasNextPage: false,
   });
-  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set([]));
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(
+    new Set([])
+  );
   const [isAllSelected, setIsAllSelected] = useState(false);
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
+
+  const userRole =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsedUser = userRole ? JSON.parse(userRole) : null;
+  const role = parsedUser?.role;
+  const isAdmin = role === "ADMIN";
 
   useEffect(() => {
     getBranches()
@@ -142,7 +152,7 @@ export default function Page() {
       fee: false,
       title: false,
       confirm: false,
-      lock:false
+      lock: false,
     });
   };
 
@@ -154,7 +164,10 @@ export default function Page() {
     }));
   };
 
-  const handleSelectionChange = (selectedIds: string[], selectedItems: any[]) => {
+  const handleSelectionChange = (
+    selectedIds: string[],
+    selectedItems: any[]
+  ) => {
     const isAll = selectedIds.length === members.length;
     setIsAllSelected(isAll);
     setSelectedRowIds(isAll ? new Set([]) : new Set(selectedIds));
@@ -211,6 +224,32 @@ export default function Page() {
         Đóng phí
       </Button>
     ),
+    title: (data: any) => (
+      <div className="flex flex-wrap gap-2">
+        {data?.titles && data?.titles.length > 0 ? (
+          data?.titles.map((titleItem, index) => (
+            <Chip
+              key={index}
+              size="sm"
+              color="primary"
+              variant="flat"
+              className="text-xs"
+            >
+              {typeof titleItem === "string" ? titleItem : titleItem.name || "Không xác định"}
+            </Chip>
+          ))
+        ) : (
+          <Chip
+            size="sm"
+            color="default"
+            variant="flat"
+            className="text-xs"
+          >
+            Chưa có danh hiệu
+          </Chip>
+        )}
+      </div>
+    ),
     actions: (data: any) => (
       <div className="flex justify-center items-center">
         <Dropdown>
@@ -252,7 +291,7 @@ export default function Page() {
     openModal("notification");
   };
 
-  const handleLockAccount =  async (data:any) => {
+  const handleLockAccount = async (data: any) => {
     try {
       await lockAccount(data.id);
       addToast({
@@ -261,6 +300,7 @@ export default function Page() {
         variant: "bordered",
         color: "success",
       });
+      fetchData();
     } catch (error) {
       addToast({
         title: "Thất bại",
@@ -363,18 +403,21 @@ export default function Page() {
                 <FaSearch />
               </Button>
             </div>
-            <Select
-              aria-label="select"
-              variant="bordered"
-              placeholder="Chọn chi hội"
-              className="w-full lg:w-40 min-w-[180px]"
-              classNames={{ mainWrapper: "bg-white rounded-large" }}
-              onChange={(e) => handleFilterChange("branchId", e.target.value)}
-            >
-              {branchs?.map((branch: any) => (
-                <SelectItem key={branch.id}>{branch.name}</SelectItem>
-              ))}
-            </Select>
+            {/* Ẩn Select chi hội nếu là ADMIN */}
+            {!isAdmin && (
+              <Select
+                aria-label="select"
+                variant="bordered"
+                placeholder="Chọn chi hội"
+                className="w-full lg:w-40 min-w-[180px]"
+                classNames={{ mainWrapper: "bg-white rounded-large" }}
+                onChange={(e) => handleFilterChange("branchId", e.target.value)}
+              >
+                {branchs?.map((branch: any) => (
+                  <SelectItem key={branch.id}>{branch.name}</SelectItem>
+                ))}
+              </Select>
+            )}
           </div>
           <div className="flex justify-center lg:justify-end gap-3 w-full lg:w-auto">
             <Button
@@ -434,10 +477,9 @@ export default function Page() {
       <SendAllNotificationForm
         isModalOpen={modalState.notification}
         setIsModalOpen={closeModal}
-        memberData = {members}
-        branchData = {branchs}
+        memberData={members}
+        branchData={branchs}
         selectedMembers={selectedItems} // Truyền danh sách hội viên đã chọn
-       
       />
       <ConfirmationModal
         title="Xóa hội viên"

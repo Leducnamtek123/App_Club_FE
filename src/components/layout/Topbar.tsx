@@ -32,30 +32,17 @@ export default function Topbar() {
   return (
     <>
       <div className="h-20 flex justify-end items-center gap-5 bg-white pe-10 shadow-sm w-full">
-        {/* <Dropdown placement="bottom-end">
-          <DropdownTrigger>
-            <Button variant="light" isIconOnly>
-              <FaRegBell size={20} />
-            </Button>
-          </DropdownTrigger>
-          <DropdownMenu aria-label="Notification">
-            {notifications.length > 0 ? (
-              notifications.map((notif) => (
-                <DropdownItem key={notif.id}>{notif.message}</DropdownItem>
-              ))
-            ) : (
-              <DropdownItem key={""}>No new notifications</DropdownItem>
-            )}
-          </DropdownMenu>
-        </Dropdown> */}
-        {/* <div className="flex items-center"><p>Chi hội: <span className="font-bold"> {user?.branch?.name} </span></p></div> */}
+        {user?.role ==="ADMIN" ?
+          <div className="flex gap-2">Chi hội:<div className="font-bold">{user?.branch?.name}</div></div>
+          :""
+        }
         <Dropdown>
           <DropdownTrigger>
             <Button
               variant="light"
               className="hover:!bg-transparent focus:!bg-transparent active:!bg-transparent"
-            >
-              <Avatar  /> <span className="text-lg ps-1">{user?.name}</span>
+            > 
+              <div className="text-lg flex justify-center items-center gap-5"><Avatar /> {user?.name}</div>
             </Button>
           </DropdownTrigger>
           <DropdownMenu aria-label="User">
