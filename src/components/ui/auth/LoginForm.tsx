@@ -55,7 +55,7 @@ const LoginForm = () => {
 
     try {
       const data = await login(email, password);
-      localStorage.setItem("token", data.token);
+      // localStorage.setItem("token", data.token);
       router.push("/dashboard");
     } catch (err: any) {
       console.error("Login error:", err);
