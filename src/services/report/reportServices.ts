@@ -1,16 +1,16 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getMembershipFeeByBranch = async (branchId: string) => {
   try {
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       `/membership-payments/report/${branchId}`
     );
-    return response;
+    return response.data;
   } catch (error) {}
 };
 // export const getEventReportBranch = async (branchId: string) => {
 //   try {
-//     const response = await apiService.get(`/events/report/?${branchId}`);
+//     const response = await axiosInstance.get(`/events/report/?${branchId}`);
 //     return response;
 //   } catch (error) {}
 // };
@@ -18,7 +18,7 @@ export const getMembershipFeeByBranch = async (branchId: string) => {
 //   try {
 //     const params :{[key:string]:any}  ={}
 //     if(branchId) params.branchId = branchId
-//     const response = await apiService.get(`/events/report`,params);
+//     const response = await axiosInstance.get(`/events/report`,params);
 //     return response;
 //   } catch (error) {}
 // };
@@ -27,8 +27,8 @@ export const getEventReport = async ({ branchId }: { branchId?: string }) => {
   try {
     const params: { [key: string]: any } = {};
     if (branchId) params.branchId = branchId;
-    const response = await apiService.get("/events/report", params);
-    return response;
+    const response = await axiosInstance.get("/events/report", params);
+    return response.data;
   } catch (error) {
     console.error("Error in getEventReport:", error);
     throw error;
@@ -57,11 +57,11 @@ export const getSponsorRanking = async ({
     if (order) params.order = order;
     if (branchId) params.branchId = branchId;
     if (eventId) params.eventId = eventId;
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       "/sponsorships/sponsor-ranking",
-      params
+      {params:params}
     );
-    return response;
+    return response.data;
   } catch (error) {
     throw error;
   }
@@ -71,7 +71,7 @@ export const getGrowthUserReport = async ({ branchId }: { branchId?: string }) =
   try {
     const params: { [key: string]: any } = {};
     if (branchId) params.branchId = branchId;
-    const response = await apiService.get("/users/stats-by-year", params);
+    const response = await axiosInstance.get("/users/stats-by-year", params);
     return response;
   } catch (error) {
     console.error("Error in getEventReport:", error);

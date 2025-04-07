@@ -1,10 +1,10 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getTitle = async () => {
   try {
-    const response = await apiService.get("/titles");
+    const response = await axiosInstance.get("/titles");
 
-    return response;
+    return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);
     return [];
@@ -13,9 +13,9 @@ export const getTitle = async () => {
 
 export const createTitle = async (data: any) => {
   try {
-    const response = await apiService.post("/titles", data,{
-      contentType: "multipart/form-data",
-  });
+    const response = await axiosInstance.post("/titles", data,{
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     if (response.status === 400) {
       const errorMessage =
         response.data?.message ||
@@ -30,8 +30,8 @@ export const createTitle = async (data: any) => {
 
 export const updateTitle = async (id:string,data: any) => {
   try {
-    const response = await apiService.put(`/titles/${id}`, data,{
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.put(`/titles/${id}`, data,{
+      headers: { "Content-Type": "multipart/form-data" },
   });
     if (response.status === 400) {
       const errorMessage =
@@ -47,7 +47,7 @@ export const updateTitle = async (id:string,data: any) => {
 
 export const deleteTitle = async(id:string)=>{
   try {
-    const response = await apiService.delete(`/titles/${id}`);
+    const response = await axiosInstance.delete(`/titles/${id}`);
     return response ;
   } catch (error) {
     throw error;
@@ -55,7 +55,7 @@ export const deleteTitle = async(id:string)=>{
 }
 export const AddTitleForUser = async(userId:string,titleId:string)=>{
   try {
-    const response = await apiService.post(`/titles/${titleId}/assign/${userId}`)
+    const response = await axiosInstance.post(`/titles/${titleId}/assign/${userId}`)
     return response;
   } catch (error) {
     
@@ -64,7 +64,7 @@ export const AddTitleForUser = async(userId:string,titleId:string)=>{
 
 export const deleteTitleFromUser = async(userId:string,titleId:string)=>{
   try {
-    const response = await apiService.post(`/titles/${titleId}/remove/${userId}`);
+    const response = await axiosInstance.post(`/titles/${titleId}/remove/${userId}`);
     return response;
   } catch (error) {
     

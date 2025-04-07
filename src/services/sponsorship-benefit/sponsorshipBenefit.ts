@@ -1,4 +1,4 @@
-import apiService from "@/lib/api/api"; 
+import axiosInstance from "@/lib/api/api";
 import { EventBenefit } from "@/lib/model/type";
 
 export const getSponsorBenefits = async ({
@@ -12,8 +12,8 @@ export const getSponsorBenefits = async ({
     if (q) params.q = q;
     if (order) params.order = order;
 
-    const response = await apiService.get("/sponsor-benefits", { params });
-    return response;
+    const response = await axiosInstance.get("/sponsor-benefits", { params });
+    return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi API sponsor benefits:", error);
     throw error;

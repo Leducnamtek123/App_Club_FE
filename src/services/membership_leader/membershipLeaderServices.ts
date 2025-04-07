@@ -1,9 +1,8 @@
-import apiService from "@/lib/api/api";
-
+import axiosInstance from "@/lib/api/api";
 
 export const changePassword = async (data: any) => {
     try {
-        const response = await apiService.post("/auth/change-password", data);
+        const response = await axiosInstance.post("/auth/change-password", data);
         if (response.status === 400) {
             const errorMessage =
                 response.data?.message ||
@@ -39,8 +38,8 @@ export const getMembershipLeaders = async ({
         if (branchId) params.branchId = branchId;
         if (role)params.role = role;
 
-        const response = await apiService .get("/users", params);
-        return response;
+        const response = await axiosInstance .get("/users", {params:params});
+        return response.data;
     } catch (error) {
         console.error("Lỗi khi gọi API:", error);
         return [];
@@ -50,7 +49,7 @@ export const getMembershipLeaders = async ({
 
 export const createMembershipLeader =  async (data: any) => {
     try {
-        const response = await apiService.post("/auth/register", data);
+        const response = await axiosInstance.post("/auth/register", data);
         if (response.status === 400) {
             const errorMessage =
               response.data?.message ||
@@ -66,7 +65,7 @@ export const createMembershipLeader =  async (data: any) => {
 
 export const editMembershipLeader = async(data: any, id: string) => {
     try {
-        const response = await apiService.patch(`/users/${id}`, data);
+        const response = await axiosInstance.patch(`/users/${id}`, data);
         if (response.status === 400) {
             const errorMessage =
               response.data?.message ||
@@ -82,7 +81,7 @@ export const editMembershipLeader = async(data: any, id: string) => {
 
 export const removeMembershipLeader = async( id: string ) => {
     try {
-        const response = await apiService.delete(`/users/${id}`);
+        const response = await axiosInstance.delete(`/users/${id}`);
         if (response.status === 401) {
             const errorMessage =
               response.data?.message ||

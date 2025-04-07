@@ -1,4 +1,4 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getAllTicketsByEventId = async ({
   page = 1,
@@ -24,7 +24,7 @@ export const getAllTicketsByEventId = async ({
     if (userId) params.userId = userId;
     if (eventId) params.eventId = eventId;
     if (status) params.status = status;
-    const response = await apiService.get("/tickets", params);
+    const response = await axiosInstance.get("/tickets", params);
     return response;
   } catch (error) {
     return error;
@@ -33,7 +33,7 @@ export const getAllTicketsByEventId = async ({
 
 export const confirmPayment = async (ticketId: string) => {
   try {
-    const response = await apiService.post(`/tickets/${ticketId}/confirm-payment`);
+    const response = await axiosInstance.post(`/tickets/${ticketId}/confirm-payment`);
     return response;
   } catch (error) {
     throw error;

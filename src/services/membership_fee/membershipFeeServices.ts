@@ -1,10 +1,10 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getMembershipFee = async () => {
 	try {
-		const response = await apiService.get("/membership-fees");
+		const response = await axiosInstance.get("/membership-fees");
 
-		return response;
+		return response.data;
 	} catch (error) {
 		console.error("Lỗi khi gọi API:", error);
 		return [];
@@ -13,7 +13,7 @@ export const getMembershipFee = async () => {
 
 export const createMembershipFee = async (data: any) => {
 	try {
-		const response = await apiService.post("/membership-fees", data);
+		const response = await axiosInstance.post("/membership-fees", data);
         if (response.status === 400) {
             const errorMessage =
               response.data?.message ||
@@ -28,7 +28,7 @@ export const createMembershipFee = async (data: any) => {
 
 export const updateMembershipFee = async(year:number,data:any) =>{
 	try {
-		const response = await apiService.put(`/membership-fees/${year}`,data);
+		const response = await axiosInstance.put(`/membership-fees/${year}`,data);
 		return response;
 	} catch (error) {
 		throw error;
@@ -37,7 +37,7 @@ export const updateMembershipFee = async(year:number,data:any) =>{
 
 export const deleteMembershipFee = async(year:number)=>{
 	try {
-		const response = await apiService.delete(`/membership-fees/${year}`);
+		const response = await axiosInstance.delete(`/membership-fees/${year}`);
 		return response;
 	} catch (error) {
 		throw error

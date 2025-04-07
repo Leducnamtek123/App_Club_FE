@@ -1,10 +1,10 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getNewsById = async (newsId: string) => {
     try {
-        const response = await apiService.get(`/news/${newsId}`);
+        const response = await axiosInstance.get(`/news/${newsId}`);
         console.log("API", response);
-        return response;
+        return response.data;
     } catch (error) {
         throw error;
     }
@@ -34,8 +34,8 @@ export const getAllNews = async ({
         if (isPublished) params.isPublished = isPublished;
         if (category) params.category = category;
         if(branchId) params.branchId=branchId;
-        const response = await apiService.get("/news", params);
-        return response;
+        const response = await axiosInstance.get("/news", {params:params});
+        return response.data;
     } catch (error) {
         return error;
     }
@@ -43,8 +43,8 @@ export const getAllNews = async ({
 
 export const createNews = async (data: FormData) => {
     try {
-        const response = await apiService.post("/news", data, {
-            contentType: "multipart/form-data",
+        const response = await axiosInstance.post("/news", data, {
+            headers: { "Content-Type": "multipart/form-data" },
         });
         return response;
     } catch (error) {
@@ -54,8 +54,8 @@ export const createNews = async (data: FormData) => {
 
 export const updateNews = async (newsId: string, data: FormData) => {
     try {
-        const response = await apiService.patch(`/news/${newsId}`, data,{
-            contentType: "multipart/form-data",
+        const response = await axiosInstance.patch(`/news/${newsId}`, data,{
+            headers: { "Content-Type": "multipart/form-data" },
         });
         return response;
     } catch (error) {
@@ -65,7 +65,7 @@ export const updateNews = async (newsId: string, data: FormData) => {
 
 export const deleteNews = async (newsId: string) => {
     try {
-        const response = await apiService.delete(`/news/${newsId}`);
+        const response = await axiosInstance.delete(`/news/${newsId}`);
         return response;
     } catch (error) {
         throw error;

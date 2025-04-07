@@ -1,8 +1,8 @@
-import apiService from "@/lib/api/api"
+import axiosInstance from "@/lib/api/api";
 
 export const feeReminder = async (data: object) => {
     try {
-        await apiService.post("/zalo-notifications/remind-fee", data);
+        await axiosInstance.post("/zalo-notifications/remind-fee", data);
        
     } catch (error) {
         throw error;

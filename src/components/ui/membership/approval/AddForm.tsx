@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SponsorshipTiers from "@/components/ui/event/SponsorshipTiers";
 import EventDetailsForm from "@/components/ui/event/EventForm";
-import { Branch, Event, SponsorshipTier } from "@/lib/model/type";
+import { Branch, Event, SponsorshipTier, SponsorshipTierDTO } from "@/lib/model/type";
 import { getBranches } from "@/services/branch/branchServices";
 import {
   getBenefitByEventId,
-  getEventById,
+  getEventAggregateById,
 } from "@/services/event/eventServices";
 import { CircularProgress } from "@heroui/react";
 import { DateValue } from "@internationalized/date";
@@ -19,19 +19,19 @@ export default function AddForm() {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [eventData, setEventData] = useState<Event | null>(null);
+  const [eventData, setEventData] = useState<Event>(null);
   const [benefitData, setBenefitData] = useState([]);
   const fetchData = async () => {
     try {
       setIsLoading(true);
       const [branchData, eventData] = await Promise.all([
         getBranches(),
-        eventId ? getEventById(eventId) : null,
+        eventId ? getEventAggregateById(eventId) : null,
       ]);
 
       setBranches(branchData);
       if (eventData) {
-        setEventData(eventData);
+        setEventData(eventData.event);
         localStorage.setItem("selectedEvent", JSON.stringify(eventData));
       }
     } catch (error) {
@@ -85,18 +85,27 @@ export default function AddForm() {
       <section className="flex justify-center z-0">
         <div className="w-full flex gap-5">
           <EventDetailsForm
-            eventData={eventData}
+            eventData={{ event: eventData }}
             branchData={branches} errors={undefined} imageFiles={[]} onFieldChange={function (name: string, value: string | DateValue | null): void {
               throw new Error("Function not implemented.");
             } } onImageUpload={function (files: FileList | null): void {
               throw new Error("Function not implemented.");
             } } onRemoveImage={function (index: number): void {
               throw new Error("Function not implemented.");
-            } } editorContentRef={undefined}          />
+            } } editorContentRef={undefined} selectedBranch={undefined} onRemoveExistingImage={function (index: number): void {
+              throw new Error("Function not implemented.");
+            } }          />
           <div className="w-2/4 bg-white p-5 border border-gray-300 shadow-lg rounded-lg">
             <div className="mb-5 font-bold">Hạng tài trợ</div>
             <SponsorshipTiers
-              benefitData={benefitData} sponsorshipTiers={[]} setSponsorshipTiers={function (tiers: SponsorshipTier[]): void {
+              benefitData={benefitData} sponsorshipTiers={[]} setSponsorshipTiers={(tiers: SponsorshipTierDTO[]) => {
+                const mappedTiers: SponsorshipTier[] = tiers.map(tier => ({
+                  ...tier,
+                  sponsorBenefitIds: tier.benefits || [], // Ensure sponsorBenefitIds is provided
+                  minAmount: Number(tier.minAmount), // Convert minAmount to a number
+                }));
+                console.log("Mapped Sponsorship Tiers:", mappedTiers);
+              } } errors={undefined} setErrors={function (errors: Record<string, string>): void {
                 throw new Error("Function not implemented.");
               } }            />
           </div>

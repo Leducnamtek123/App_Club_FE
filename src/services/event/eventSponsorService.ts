@@ -1,4 +1,4 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getSponsorByEventId = async ({
   page = 1,
@@ -15,8 +15,8 @@ export const getSponsorByEventId = async ({
     const params: { [key: string]: any } = { page, take };
     if (q) params.q = q;
     if (eventId) params.eventId = eventId;
-    const response = await apiService.get("/sponsorships", params);
-    return response;
+    const response = await axiosInstance.get("/sponsorships", {params:params});
+    return response.data;
   } catch (error) {
     throw error;
   }
@@ -24,8 +24,8 @@ export const getSponsorByEventId = async ({
 
 export const addSponsor = async (data: object) => {
   try {
-    const response = await apiService.post("/sponsorships", data, {
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.post("/sponsorships", data, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     if (response.status === 400) {
       const errorMessage =
@@ -40,8 +40,8 @@ export const addSponsor = async (data: object) => {
 };
 export const updateSponsor = async (data: object,userId:string) => {
   try {
-    const response = await apiService.patch(`/sponsorships/${userId}`, data, {
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.patch(`/sponsorships/${userId}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     if (response.status === 400) {
       const errorMessage =
@@ -57,7 +57,7 @@ export const updateSponsor = async (data: object,userId:string) => {
 
 export const getSponsorRankByEvent = async (eventId: string) => {
   try {
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       `/sponsorships/event/${eventId}/sponsors-by-tier`
     );
     return response;

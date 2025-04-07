@@ -4,7 +4,7 @@ import apiService from "@/lib/api/api";
 export const getIntroduction = async ()=>{
     try {
         const response = await apiService.get("/introduction");
-        return response;
+        return response.data;
     } catch (error) {
         throw error;
     }
@@ -14,7 +14,7 @@ export const getIntroduction = async ()=>{
 export const createIntroduction = async(data: any) => {
     try {
         const request = await apiService.post("/introduction", data,{
-            contentType: "multipart/form-data",
+            headers: { "Content-Type": "multipart/form-data" },
           });
         if (request.status === 400) {
             const errorMessage =
@@ -32,7 +32,7 @@ export const createIntroduction = async(data: any) => {
 export const updateIntroduction = async(data: any) => {
     try {
         const request = await apiService.put("/introduction", data,{
-            contentType: "multipart/form-data",
+            headers: { "Content-Type": "multipart/form-data" },
           });
         if (request.status === 400) {
             const errorMessage =
@@ -40,7 +40,7 @@ export const updateIntroduction = async(data: any) => {
                 "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.";
             throw new Error(errorMessage);
         }
-        return request
+        return request.data
     } catch (error) {
         throw error;
     }

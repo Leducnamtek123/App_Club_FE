@@ -1,10 +1,10 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 import { EventAggregate } from "@/lib/model/type";
 
 export const getEventAggregateById = async (eventId: string): Promise<EventAggregate> => {
   try {
-    const response = await apiService.get(`/events/aggregate/${eventId}`);
-    return response;
+    const response = await axiosInstance.get(`/events/aggregate/${eventId}`);
+    return response.data;
   } catch (error) {
     console.error("Error fetching event aggregate:", error);
     throw error; // Ném lỗi để xử lý ở nơi gọi hàm
@@ -44,8 +44,12 @@ export const getAllEvents = async ({
     if (isFree) params.isFree = isFree;
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const response = await apiService.get("/events", params);
-    return response;
+
+    const response = await axiosInstance.get("/events", {
+      params: params
+    });
+    
+    return response.data;
   } catch (error) {
     return error;
   }
@@ -53,8 +57,8 @@ export const getAllEvents = async ({
 
 export const createEvent = async (data: FormData) => {
   try {
-    const response = await apiService.post("/events", data, {
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.post("/events", data, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response;
   } catch (error) {
@@ -64,8 +68,8 @@ export const createEvent = async (data: FormData) => {
 export const createEventAggregate = async (data: FormData) => {
   try {
 
-    const response = await apiService.post("/events/aggregate", data, { 
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.post("/events/aggregate", data, { 
+      headers: { "Content-Type": "multipart/form-data" },
     });
 
     return response;
@@ -77,10 +81,10 @@ export const createEventAggregate = async (data: FormData) => {
 
 export const updateEventAggregate = async (eventId: string, data: FormData) => {
   try {
-    const response = await apiService.put(`/events/aggregate/${eventId}`, data, {
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.put(`/events/aggregate/${eventId}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
-    return response;
+    return response.data;
   } catch (error) {
     throw error;
   }
@@ -88,7 +92,7 @@ export const updateEventAggregate = async (eventId: string, data: FormData) => {
 
 export const addEventBenefit = async (data: object) => {
   try {
-    const response = await apiService.post("/sponsorship-tiers", data);
+    const response = await axiosInstance.post("/sponsorship-tiers", data);
     return response;
   } catch (error) {
     throw error;
@@ -97,7 +101,7 @@ export const addEventBenefit = async (data: object) => {
 
 export const updateEventBenefit = async (benefitId: string, data: object) => {
   try {
-    const response = await apiService.put(
+    const response = await axiosInstance.put(
       `/sponsorship-tiers/${benefitId}`,
       data
     );
@@ -109,7 +113,7 @@ export const updateEventBenefit = async (benefitId: string, data: object) => {
 
 export const deleteEvent = async (eventId: string) => {
   try {
-    const response = await apiService.delete(`/events/${eventId}`);
+    const response = await axiosInstance.delete(`/events/${eventId}`);
     return response;
   } catch (error) {
     throw error;
@@ -118,10 +122,10 @@ export const deleteEvent = async (eventId: string) => {
 
 export const getBenefitByEventId = async (eventId: string) => {
   try {
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       `/sponsorship-tiers/event/${eventId}`
     );
-    return response;
+    return response.data;
   } catch (error) {
     throw error;
   }

@@ -1,4 +1,4 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 export const getApprovedUser = async ({
   page = 1,
@@ -24,8 +24,8 @@ export const getApprovedUser = async ({
     if (branchId) params.branchId = branchId;
     if (status) params.status = status;
     if (role) params.role = role;
-    const response = await apiService.get("/users", params);
-    return response;
+    const response = await axiosInstance.get("/users", {params:params});
+    return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);
     return [];
@@ -37,7 +37,7 @@ export const getPendingUser = async (
   status = "pending"
 ) => {
   try {
-    const response = await apiService.get("/users", { page, take, status });
+    const response = await axiosInstance.get("/users", { params: { page, take, status } });
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);
@@ -47,8 +47,8 @@ export const getPendingUser = async (
 
 export const updateUser = async (userId: string, data: object) => {
   try {
-    const response = await apiService.patch(`/users/${userId}`, data, {
-      contentType: "multipart/form-data",
+    const response = await axiosInstance.patch(`/users/${userId}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response;
   } catch (error) {
@@ -58,7 +58,7 @@ export const updateUser = async (userId: string, data: object) => {
 
 export const deleteUser = async (userId: string) => {
   try {
-    const response = await apiService.delete(`/users/${userId}`);
+    const response = await axiosInstance.delete(`/users/${userId}`);
     return response;
   } catch (error) {
     throw error;
@@ -67,7 +67,7 @@ export const deleteUser = async (userId: string) => {
 
 export const approvedUser = async (userID: string) => {
   try {
-    const response = await apiService.patch(`/users/${userID}/approve`, {});
+    const response = await axiosInstance.patch(`/users/${userID}/approve`, {});
     if (response.status === 400) {
       const errorMessage =
         response.data?.message || "Có lỗi xảy ra, vui lòng kiểm tra lại.";
@@ -81,7 +81,7 @@ export const approvedUser = async (userID: string) => {
 
 export const rejectUser = async (userID: string) => {
   try {
-    const response = await apiService.patch(`/users/${userID}/refuse`, {});
+    const response = await axiosInstance.patch(`/users/${userID}/refuse`, {});
     if (response.status === 400) {
       const errorMessage =
         response.data?.message || "Có lỗi xảy ra, vui lòng kiểm tra lại.";
@@ -95,7 +95,7 @@ export const rejectUser = async (userID: string) => {
 
 export const unbanUser = async (userId: string) => {
   try {
-    const response = await apiService.patch(`/users/${userId}/unban`);
+    const response = await axiosInstance.patch(`/users/${userId}/unban`);
     return response;
   } catch (error) {
     throw error;
@@ -104,7 +104,7 @@ export const unbanUser = async (userId: string) => {
 
 export const addMemberFee = async (data: object) => {
   try {
-    const response = await apiService.post(`/membership-payments`, data);
+    const response = await axiosInstance.post(`/membership-payments`, data);
     if (response.status === 400) {
       const errorMessage =
         response.data?.message ||
@@ -123,7 +123,7 @@ export const getMemberFeeByUser = async (
   take = 10
 ) => {
   try {
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       `/membership-payments?page=${page}&take=${take}&userId=${userID}`
     );
     return response;
@@ -159,11 +159,11 @@ export const getAllMemberFee = async ({
     if (endYear) params.endYear = endYear;
     if (branchId) params.branchId = branchId;
     if (userId) params.userId = userId;
-    const response = await apiService.get(
+    const response = await axiosInstance.get(
       `/membership-payments/report`,
-      params
+      {params:params}
     );
-    return response;
+    return response.data;
   } catch (error) {
     throw error;
   }
@@ -183,14 +183,14 @@ export const exportMembersToPDF = async ({
   status = "approved",
 }: ExportMembersParams) => {
   try {
-    const response = await apiService.get("/export/members-pdf", {
+    const response = await axiosInstance.get("/export/members-pdf", {
       params: {
         branchId, // Filter by branch if provided
         status, // Filter by status, default to "approved"
       },
     });
 
-    return response; // Returns { jobId, downloadUrl }
+    return response.data;
   } catch (error) {
     console.error("Error generating members PDF:", error);
     throw error;
@@ -199,7 +199,7 @@ export const exportMembersToPDF = async ({
 
 export const downloadPDF = async (fileName: string) => {
   try {
-    const response = await apiService.get(`export/downloads/${fileName}`, {
+    const response = await axiosInstance.get(`export/downloads/${fileName}`, {
       responseType: "blob", // Important: request response as Blob for PDF
     });
     return response;
@@ -211,7 +211,7 @@ export const downloadPDF = async (fileName: string) => {
 
 export const lockAccount = async (userId: string) => {
   try {
-    const response = await apiService.patch(`/users/${userId}/ban`);
+    const response = await axiosInstance.patch(`/users/${userId}/ban`);
     return response;
   } catch (error) {
     throw error;

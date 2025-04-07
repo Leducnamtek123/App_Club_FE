@@ -1,4 +1,4 @@
-import apiService from "@/lib/api/api";
+import axiosInstance from "@/lib/api/api";
 
 
 export const getBranches = async (
@@ -6,8 +6,8 @@ export const getBranches = async (
     take = 100
 ) => {
     try {
-        const response = await apiService.get("/branches", {params: { page, take }});
-        return response.data;
+        const response = await axiosInstance.get("/branches", {params: { page, take }});
+        return response.data.data;
     } catch (error) {
         console.error("Lỗi khi gọi API:", error);
         return [];
@@ -17,7 +17,7 @@ export const getBranches = async (
 
 export const createBranch = async ( data: object ) => {
     try { 
-        const response = await apiService.post("/branches", data);
+        const response = await axiosInstance.post("/branches", data);
         if (response.status === 400) {
             const errorMessage =
               response.data?.message ||
@@ -31,7 +31,7 @@ export const createBranch = async ( data: object ) => {
 }
 export const updateBranch = async ( branch_id:string,data: object ) => {
     try { 
-        const response = await apiService.put(`/branches/${branch_id}`, data);
+        const response = await axiosInstance.put(`/branches/${branch_id}`, data);
         if (response.status === 400) {
             const errorMessage =
               response.data?.message ||
@@ -46,7 +46,7 @@ export const updateBranch = async ( branch_id:string,data: object ) => {
 
 export const deleteBranch = async ( id: string ) => {
     try {
-        const response = await apiService.delete(`/branches/${id}`);
+        const response = await axiosInstance.delete(`/branches/${id}`);
         return response;
     } catch (error) {
         throw error;
