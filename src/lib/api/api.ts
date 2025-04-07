@@ -1,6 +1,6 @@
 import axios from "axios";
 import { RefreshTokenResponse } from "@/lib/model/type";
-import { logout, refreshAccessToken } from "@/services/login/authServices";
+import { logout, refreshAccessToken } from "../../services/login/authServices";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -18,9 +18,9 @@ const axiosInstance = axios.create({
 });
 
 let isRefreshing = false;  // Trạng thái để tránh gọi refresh token nhiều lần
-let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;  // Promise refresh token đang chờ xử lý
+let refreshTokenPromise: Promise<any> | null = null;  // Promise đang đợi xử lý
 
-// Interceptor yêu cầu: Thêm Authorization header vào mỗi request
+// Interceptor request: Thêm access token vào header
 axiosInstance.interceptors.request.use(
   (config) => {
     const accessToken = getAccessToken();
@@ -32,64 +32,65 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Xử lý lỗi response 401 và thực hiện refresh token
+// Interceptor response: Bắt lỗi 401 để xử lý refresh token
 axiosInstance.interceptors.response.use(
-  (response) => response, // Trả về response nếu không có lỗi
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Nếu lỗi là 401 và chưa thực hiện refresh token
+    // Nếu lỗi là 401 và chưa retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refreshToken = localStorage.getItem("refreshToken");
       if (!refreshToken) {
         console.log("No refresh token available, logging out");
-        logout(); // Nếu không có refresh token thì logout
+        logout();
         return Promise.reject(error);
       }
 
-      // Nếu chưa có refresh token request đang chạy, bắt đầu gọi refresh token
+      // Nếu chưa có refresh đang chạy, bắt đầu gọi
       if (!isRefreshing) {
         console.log("Refreshing token...");
         isRefreshing = true;
 
-        // Bắt đầu gọi refresh token
         refreshTokenPromise = refreshAccessToken(refreshToken)
-          .then((data) => {
+          .then((data: RefreshTokenResponse) => {
             const newAccessToken = data.accessToken;
             const newRefreshToken = data.refreshToken;
 
-            // Lưu access token mới và refresh token mới vào localStorage
+            // Lưu token mới
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("refreshToken", newRefreshToken);
 
-            // Cập nhật authorization header cho tất cả request sau
+            // Gắn token mới vào header
             axiosInstance.defaults.headers["Authorization"] = `Bearer ${newAccessToken}`;
             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
-            // Trả về data sau khi refresh token thành công
-            return data;
+            return axiosInstance(originalRequest); // ✅ retry lại request gốc
           })
           .catch((refreshError) => {
             console.error("Refresh token failed:", refreshError);
-            logout(); // Nếu refresh token không thành công, logout
+            logout();
             return Promise.reject(refreshError);
           })
           .finally(() => {
-            isRefreshing = false; // Reset trạng thái refresh
-            refreshTokenPromise = null; // Reset promise refresh
+            isRefreshing = false;
+            refreshTokenPromise = null;
           });
 
-        // Sau khi refresh token thành công, retry lại request gốc
-        return refreshTokenPromise.then(() => axiosInstance(originalRequest));
+        return refreshTokenPromise;
       }
 
-      // Nếu đã có request refresh token đang chạy, chờ đến khi hoàn tất
-      return refreshTokenPromise?.then(() => axiosInstance(originalRequest));
+      // Nếu đang trong lúc refresh, chờ nó xong rồi retry lại request
+      return refreshTokenPromise?.then(() => {
+        const accessToken = getAccessToken();
+        originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+        return axiosInstance(originalRequest);
+      });
     }
 
-    // Xử lý các lỗi khác (không phải 401)
+    // Lỗi khác
     const errorMessage =
       error.response?.data?.message ||
       (error.request ? "Không có phản hồi từ server!" : error.message);
