@@ -11,7 +11,7 @@ const axiosInstance = axios.create({
   },
 });
 
-// Interceptor để log cURL request
+// Interceptor để log cURL request (debug)
 axiosInstance.interceptors.request.use((config) => {
   const { method, url, headers, data, params } = config;
   let curl = `curl -X ${method?.toUpperCase()} '${API_BASE_URL}${url}'`;
@@ -37,6 +37,7 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
+// Global refresh token tracker
 let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
 
 const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenResponse> => {
@@ -58,12 +59,12 @@ const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenRes
 };
 
 const isTokenExpired = (): boolean => {
-  const expiresAt = localStorage.getItem("expiresIn");
-  if (!expiresAt) return true;
-  return Date.now() >= parseInt(expiresAt, 10);
+  const expiresIn = localStorage.getItem("expiresIn");
+  if (!expiresIn) return true;
+  const expirationTime = parseInt(expiresIn, 10);
+  return Date.now() >= expirationTime;
 };
 
-// Request Interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
     const accessToken = localStorage.getItem("accessToken");
@@ -71,21 +72,23 @@ axiosInstance.interceptors.request.use(
 
     if (accessToken && refreshToken) {
       if (isTokenExpired()) {
-        console.log("🔍 Token expired, refreshing...");
+        console.log("🔁 Token expired, refreshing...");
         if (!refreshTokenPromise) {
           refreshTokenPromise = refreshAccessToken(refreshToken)
             .then((data) => {
+              const newExpiresAt = Date.now() + data.expiresIn * 1000;
+              axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
               localStorage.setItem("accessToken", data.accessToken);
               localStorage.setItem("refreshToken", data.refreshToken);
-              const expiresAt = Date.now() + data.expiresIn * 1000;
-              localStorage.setItem("expiresIn", expiresAt.toString());
+              localStorage.setItem("expiresIn", newExpiresAt.toString());
+              console.log("✅ Refresh token success");
               return data;
             })
-            .catch((error) => {
-              console.error("🔍 Refresh token failed:", error);
+            .catch((err) => {
+              console.error("❌ Refresh token failed:", err);
               localStorage.clear();
-              window.location.href = "/login";
-              throw error;
+              window.location.replace("/login");
+              throw err;
             })
             .finally(() => {
               refreshTokenPromise = null;
@@ -93,17 +96,13 @@ axiosInstance.interceptors.request.use(
         }
         await refreshTokenPromise;
       }
-
-      // Set Authorization header mỗi lần request
       config.headers["Authorization"] = `Bearer ${localStorage.getItem("accessToken")}`;
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => Promise.reject(error)
@@ -113,10 +112,7 @@ interface RequestOptions {
   contentType?: "application/json" | "multipart/form-data";
 }
 
-// Hàm xử lý request có refresh token tự động
-const handleRequestWithRefresh = async <T>(
-  requestFn: () => Promise<T>
-): Promise<T> => {
+const handleRequestWithRefresh = async <T>(requestFn: () => Promise<T>): Promise<T> => {
   try {
     return await requestFn();
   } catch (error: any) {
@@ -127,32 +123,33 @@ const handleRequestWithRefresh = async <T>(
       }
 
       if (!refreshTokenPromise) {
-        console.log("🔍 Starting new refresh token process with:", refreshToken);
+        console.log("🔁 Refreshing token...");
         refreshTokenPromise = refreshAccessToken(refreshToken)
           .then((data) => {
+            const newExpiresAt = Date.now() + data.expiresIn * 1000;
+            axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
-            const expiresAt = Date.now() + data.expiresIn * 1000;
-            localStorage.setItem("expiresIn", expiresAt.toString());
+            localStorage.setItem("expiresIn", newExpiresAt.toString());
+            console.log("✅ Token refreshed in retry");
             return data;
           })
           .catch((refreshError) => {
-            console.error("🔍 Refresh token failed:", refreshError);
+            console.error("❌ Refresh token failed in retry:", refreshError);
             localStorage.clear();
-            window.location.href = "/login";
+            window.location.replace("/login");
             throw refreshError;
           })
           .finally(() => {
             refreshTokenPromise = null;
           });
       } else {
-        console.log("🔍 Waiting for existing refresh token process");
+        console.log("⏳ Waiting for ongoing token refresh...");
       }
 
       await refreshTokenPromise;
       return await requestFn();
     }
-
     throw error;
   }
 };
@@ -161,35 +158,45 @@ const apiService = {
   get: async (url: string, params = {}, options: RequestOptions = {}) => {
     const config = {
       params,
-      headers: options.contentType ? { "Content-Type": options.contentType } : undefined,
+      headers: options.contentType
+        ? { "Content-Type": options.contentType }
+        : undefined,
     };
     return handleRequestWithRefresh(() => axiosInstance.get(url, config).then((res) => res.data));
   },
 
   post: async (url: string, data?: any, options: RequestOptions = {}) => {
     const config = {
-      headers: options.contentType ? { "Content-Type": options.contentType } : undefined,
+      headers: options.contentType
+        ? { "Content-Type": options.contentType }
+        : undefined,
     };
     return handleRequestWithRefresh(() => axiosInstance.post(url, data, config).then((res) => res.data));
   },
 
   put: async (url: string, data: any, options: RequestOptions = {}) => {
     const config = {
-      headers: options.contentType ? { "Content-Type": options.contentType } : undefined,
+      headers: options.contentType
+        ? { "Content-Type": options.contentType }
+        : undefined,
     };
     return handleRequestWithRefresh(() => axiosInstance.put(url, data, config).then((res) => res.data));
   },
 
   patch: async (url: string, data?: any, options: RequestOptions = {}) => {
     const config = {
-      headers: options.contentType ? { "Content-Type": options.contentType } : undefined,
+      headers: options.contentType
+        ? { "Content-Type": options.contentType }
+        : undefined,
     };
     return handleRequestWithRefresh(() => axiosInstance.patch(url, data, config).then((res) => res.data));
   },
 
   delete: async (url: string, options: RequestOptions = {}) => {
     const config = {
-      headers: options.contentType ? { "Content-Type": options.contentType } : undefined,
+      headers: options.contentType
+        ? { "Content-Type": options.contentType }
+        : undefined,
     };
     return handleRequestWithRefresh(() => axiosInstance.delete(url, config).then((res) => res.data));
   },
