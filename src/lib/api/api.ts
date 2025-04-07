@@ -1,5 +1,7 @@
 import axios from "axios";
 import { RefreshTokenResponse } from "../model/type";
+import { refreshAccessToken } from "@/services/auth/authService";
+import { logout } from "@/services/login/authServices";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -40,63 +42,11 @@ axiosInstance.interceptors.request.use((config) => {
 // Global refresh token tracker
 let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
 
-const refreshAccessToken = async (refreshToken: string): Promise<RefreshTokenResponse> => {
-  try {
-    const { data } = await axios.post<RefreshTokenResponse>(
-      `${API_BASE_URL}auth/refresh-token`,
-      { refreshToken },
-      { headers: { "Content-Type": "application/json" } }
-    );
-    return data;
-  } catch (error: any) {
-    console.error("🔍 Refresh token request failed:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    });
-    throw error;
-  }
-};
-
-const isTokenExpired = (): boolean => {
-  const expiresIn = localStorage.getItem("expiresIn");
-  if (!expiresIn) return true;
-  const expirationTime = parseInt(expiresIn, 10);
-  return Date.now() >= expirationTime;
-};
-
 axiosInstance.interceptors.request.use(
   async (config) => {
     const accessToken = localStorage.getItem("accessToken");
-    const refreshToken = localStorage.getItem("refreshToken");
-
-    if (accessToken && refreshToken) {
-      if (isTokenExpired()) {
-        console.log("🔁 Token expired, refreshing...");
-        if (!refreshTokenPromise) {
-          refreshTokenPromise = refreshAccessToken(refreshToken)
-            .then((data) => {
-              const newExpiresAt = Date.now() + data.expiresIn * 1000;
-              axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
-              localStorage.setItem("accessToken", data.accessToken);
-              localStorage.setItem("refreshToken", data.refreshToken);
-              localStorage.setItem("expiresIn", newExpiresAt.toString());
-              console.log("✅ Refresh token success");
-              return data;
-            })
-            .catch((err) => {
-              console.error("❌ Refresh token failed:", err);
-              localStorage.clear();
-              window.location.replace("/login");
-              throw err;
-            })
-            .finally(() => {
-              refreshTokenPromise = null;
-            });
-        }
-        await refreshTokenPromise;
-      }
-      config.headers["Authorization"] = `Bearer ${localStorage.getItem("accessToken")}`;
+    if (accessToken) {
+      config.headers["Authorization"] = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -105,7 +55,51 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; // Đánh dấu yêu cầu đã được thử lại
+
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        logout();
+        return Promise.reject(error);
+      }
+
+      if (!refreshTokenPromise) {
+        console.log("🔁 Refreshing token...");
+
+        refreshTokenPromise = refreshAccessToken(refreshToken)
+          .then((data) => {
+            const newExpiresAt = Date.now() + data.expiresIn * 1000;
+            axiosInstance.defaults.headers["Authorization"] = `Bearer ${data.accessToken}`;
+            localStorage.setItem("accessToken", data.accessToken);
+            localStorage.setItem("refreshToken", data.refreshToken);
+            localStorage.setItem("expiresIn", newExpiresAt.toString());
+            console.log("✅ Token refreshed");
+            return data;
+          })
+          .catch((refreshError) => {
+            logout();
+            throw refreshError;
+          })
+          .finally(() => {
+            refreshTokenPromise = null;
+          });
+      } else {
+        console.log("⏳ Waiting for ongoing token refresh...");
+      }
+
+      await refreshTokenPromise;
+
+      // Retry lại yêu cầu gốc với token mới
+      const configRetry = error.config;
+      configRetry.headers["Authorization"] = `Bearer ${localStorage.getItem("accessToken")}`;
+      return axiosInstance(configRetry);
+    }
+    return Promise.reject(error);
+  }
 );
 
 interface RequestOptions {
@@ -124,6 +118,7 @@ const handleRequestWithRefresh = async <T>(requestFn: () => Promise<T>): Promise
 
       if (!refreshTokenPromise) {
         console.log("🔁 Refreshing token...");
+
         refreshTokenPromise = refreshAccessToken(refreshToken)
           .then((data) => {
             const newExpiresAt = Date.now() + data.expiresIn * 1000;
@@ -135,9 +130,7 @@ const handleRequestWithRefresh = async <T>(requestFn: () => Promise<T>): Promise
             return data;
           })
           .catch((refreshError) => {
-            console.error("❌ Refresh token failed in retry:", refreshError);
-            localStorage.clear();
-            window.location.replace("/login");
+            logout();
             throw refreshError;
           })
           .finally(() => {
