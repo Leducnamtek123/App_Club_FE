@@ -17,6 +17,9 @@ const axiosInstance = axios.create({
   },
 });
 
+let isRefreshing = false;  // Trạng thái để tránh gọi refresh token nhiều lần
+let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;  // Promise refresh token đang chờ xử lý
+
 // Interceptor yêu cầu: Thêm Authorization header vào mỗi request
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -26,23 +29,19 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(new Error(error.message))
+  (error) => Promise.reject(error)
 );
-
-let isRefreshing = false;
-let refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
 
 // Xử lý lỗi response 401 và thực hiện refresh token
 axiosInstance.interceptors.response.use(
   (response) => response, // Trả về response nếu không có lỗi
   async (error) => {
     const originalRequest = error.config;
-    
+
     // Nếu lỗi là 401 và chưa thực hiện refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Lấy refresh token từ localStorage
       const refreshToken = localStorage.getItem("refreshToken");
       if (!refreshToken) {
         console.log("No refresh token available, logging out");
@@ -54,15 +53,22 @@ axiosInstance.interceptors.response.use(
       if (!isRefreshing) {
         console.log("Refreshing token...");
         isRefreshing = true;
+
+        // Bắt đầu gọi refresh token
         refreshTokenPromise = refreshAccessToken(refreshToken)
           .then((data) => {
             const newAccessToken = data.accessToken;
-            localStorage.setItem("accessToken", newAccessToken); // Lưu access token mới vào localStorage
-            localStorage.setItem("refreshToken", data.refreshToken); // Lưu refresh token mới vào localStorage
+            const newRefreshToken = data.refreshToken;
+
+            // Lưu access token mới và refresh token mới vào localStorage
+            localStorage.setItem("accessToken", newAccessToken);
+            localStorage.setItem("refreshToken", newRefreshToken);
 
             // Cập nhật authorization header cho tất cả request sau
             axiosInstance.defaults.headers["Authorization"] = `Bearer ${newAccessToken}`;
             originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+
+            // Trả về data sau khi refresh token thành công
             return data;
           })
           .catch((refreshError) => {
